@@ -36,6 +36,13 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Wichtig: Wenn /auth/refresh selbst 401 zurückgibt, dürfen wir NICHT erneut refreshen
+    // und auch keinen Hard-Reload machen (sonst entsteht eine Endlos-Schleife).
+    if (originalRequest?.url?.includes("/auth/refresh")) {
+      accessToken = null;
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -49,7 +56,8 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch {
         accessToken = null;
-        window.location.href = "/login";
+        // Kein window.location.href hier, sonst reload-loop.
+        // Der App-State bleibt unauthenticated und die Router-Guards leiten korrekt um.
         return Promise.reject(error);
       }
     }
