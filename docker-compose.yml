@@ -1,0 +1,72 @@
+# ============================================================
+# Docker Compose -- Orchestriert mehrere Container gleichzeitig
+# Starten:  docker-compose up -d
+# Stoppen:  docker-compose down
+# Logs:     docker-compose logs -f
+# ============================================================
+
+# Welche Docker Compose Version wir nutzen
+# (ab v2 ist "version:" optional, aber gut für Klarheit)
+
+# "services" definiert welche Container gestartet werden sollen.
+# Jeder Service = ein Container = eine isolierte Mini-Maschine.
+# Wir haben erstmal nur einen: die PostgreSQL-Datenbank.
+services:
+
+  # --------------------------------------------------------
+  # POSTGRES -- Unsere Datenbank
+  # --------------------------------------------------------
+  db:
+    # Welches Docker-Image soll genutzt werden?
+    # "postgres:16-alpine" bedeutet:
+    #   - postgres  = das offizielle PostgreSQL Image von Docker Hub
+    #   - 16        = Version 16 (aktuell und stabil)
+    #   - alpine    = Minimal-Linux (nur ~80MB statt ~400MB)
+    image: postgres:16-alpine
+
+    # Name des Containers (erscheint in Docker Desktop und bei "docker ps")
+    container_name: taskmanager-db
+
+    # Neustart-Verhalten:
+    # "unless-stopped" = Container startet automatisch neu wenn er crasht,
+    # AUSSER du hast ihn manuell gestoppt mit "docker-compose down"
+    restart: unless-stopped
+
+    # Umgebungsvariablen FÜR den Container.
+    # PostgreSQL liest diese beim ersten Start und erstellt damit
+    # den User und die Datenbank automatisch.
+    environment:
+      # Passwort für den "postgres" Admin-User
+      POSTGRES_PASSWORD: postgres
+      # Name der Datenbank die automatisch erstellt wird
+      POSTGRES_DB: taskmanager
+
+    # Port-Mapping: HOST:CONTAINER
+    # Der Container läuft intern auf Port 5432 (PostgreSQL Standard).
+    # Wir mappen das auf Port 5432 deines Macs.
+    # Danach kannst du dich von deinem Mac aus verbinden:
+    #   postgresql://postgres:postgres@localhost:5432/taskmanager
+    ports:
+      - "5432:5432"
+
+    # Volumes = Permanenter Speicher.
+    # Ohne Volume gehen ALLE Daten verloren wenn der Container gestoppt wird!
+    # Mit Volume werden die Daten auf deiner Festplatte gespeichert
+    # und überleben Container-Neustarts.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      #         ^^^^^^^^^^^^^^^^^^^^^^^^
+      #         Das ist der Ordner WO PostgreSQL intern seine Daten speichert.
+      #         "pgdata" davor ist der Name unseres Volumes (definiert unten).
+
+# --------------------------------------------------------
+# VOLUMES -- Permanenter Speicher für Container
+# --------------------------------------------------------
+# Hier definieren wir die Volumes die oben referenziert werden.
+# Docker verwaltet den tatsächlichen Speicherort auf deiner Festplatte.
+# Du musst dich nicht darum kümmern wo genau die Daten liegen.
+volumes:
+  pgdata:
+    # "driver: local" = Daten werden lokal auf deinem Mac gespeichert
+    # (das ist der Standard, aber explizit ist besser als implizit)
+    driver: local
