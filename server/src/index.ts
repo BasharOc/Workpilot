@@ -21,13 +21,19 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 100,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-});
-app.use("/api", limiter);
+// Rate limiting:
+// - In production: schützt gegen Brute-Force / Spam
+// - In development: deaktiviert, damit du beim Testen nicht dauernd 429 bekommst
+if (process.env.NODE_ENV === "production") {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+  });
+
+  app.use("/api", limiter);
+}
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
