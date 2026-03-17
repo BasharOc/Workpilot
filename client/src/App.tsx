@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import MaintenancePage from "@/pages/MaintenancePage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -61,10 +62,50 @@ function DashboardPlaceholder() {
 
 export default function App() {
   const checkAuth = useAuthStore((s) => s.checkAuth);
+  const [backendUp, setBackendUp] = useState<boolean | null>(null);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function ping() {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 1500);
+
+      try {
+        const res = await fetch("/api/health", {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (!isMounted) return;
+        setBackendUp(res.ok);
+      } catch {
+        if (!isMounted) return;
+        setBackendUp(false);
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    }
+
+    // Sofort prüfen und dann alle 2 Sekunden erneut.
+    ping();
+    const interval = window.setInterval(ping, 2000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  // Wenn das Backend down ist, zeigen wir eine Wartungsseite.
+  if (backendUp === false) {
+    return <MaintenancePage />;
+  }
 
   return (
     <BrowserRouter>
