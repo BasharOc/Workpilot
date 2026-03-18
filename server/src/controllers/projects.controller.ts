@@ -14,7 +14,9 @@ const createProjectSchema = z.object({
   budget: z.number().nonnegative().optional().nullable(),
 });
 
-const updateProjectSchema = createProjectSchema.omit({ clientId: true }).partial();
+const updateProjectSchema = createProjectSchema
+  .omit({ clientId: true })
+  .partial();
 
 export async function listProjects(req: AuthRequest, res: Response) {
   const { clientId, status } = req.query as {

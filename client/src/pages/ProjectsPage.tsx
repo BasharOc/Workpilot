@@ -34,12 +34,10 @@ const STATUS_OPTIONS = [
 function getStatusClass(status: string) {
   if (status === "in_progress")
     return "bg-amber-50 text-amber-700 border-amber-200";
-  if (status === "planned")
-    return "bg-blue-50 text-blue-700 border-blue-200";
+  if (status === "planned") return "bg-blue-50 text-blue-700 border-blue-200";
   if (status === "completed")
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (status === "on_hold")
-    return "bg-zinc-100 text-zinc-600 border-zinc-200";
+  if (status === "on_hold") return "bg-zinc-100 text-zinc-600 border-zinc-200";
   return "bg-red-50 text-red-700 border-red-200"; // cancelled
 }
 
@@ -179,8 +177,7 @@ export default function ProjectsPage() {
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       (p.client?.name ?? "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || p.status === statusFilter;
-    const matchClient =
-      clientFilter === "all" || p.clientId === clientFilter;
+    const matchClient = clientFilter === "all" || p.clientId === clientFilter;
     return matchSearch && matchStatus && matchClient;
   });
 
@@ -322,7 +319,9 @@ export default function ProjectsPage() {
                       colSpan={6}
                       className="px-4 py-8 text-center text-muted-foreground"
                     >
-                      {search.trim() || statusFilter !== "all" || clientFilter !== "all"
+                      {search.trim() ||
+                      statusFilter !== "all" ||
+                      clientFilter !== "all"
                         ? "No projects match your filters."
                         : "No projects yet."}
                     </td>
@@ -436,7 +435,13 @@ export default function ProjectsPage() {
                     ))}
                   </select>
                   <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
                       <path d="m6 9 6 6 6-6" />
                     </svg>
                   </span>
@@ -455,7 +460,13 @@ export default function ProjectsPage() {
                     ))}
                   </select>
                   <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
                       <path d="m6 9 6 6 6-6" />
                     </svg>
                   </span>
@@ -487,9 +498,7 @@ export default function ProjectsPage() {
                   className="w-full resize-y rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
 
-                {addError && (
-                  <p className="text-xs text-red-600">{addError}</p>
-                )}
+                {addError && <p className="text-xs text-red-600">{addError}</p>}
 
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <button

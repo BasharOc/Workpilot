@@ -33,12 +33,10 @@ const STATUS_OPTIONS = [
 function getStatusClass(status: string) {
   if (status === "in_progress")
     return "bg-amber-50 text-amber-700 border-amber-200";
-  if (status === "planned")
-    return "bg-blue-50 text-blue-700 border-blue-200";
+  if (status === "planned") return "bg-blue-50 text-blue-700 border-blue-200";
   if (status === "completed")
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (status === "on_hold")
-    return "bg-zinc-100 text-zinc-600 border-zinc-200";
+  if (status === "on_hold") return "bg-zinc-100 text-zinc-600 border-zinc-200";
   return "bg-red-50 text-red-700 border-red-200";
 }
 
@@ -363,11 +361,14 @@ export default function ProjectDetailPage() {
                     ) : (
                       <span className="text-sm">
                         {project.deadline ? (
-                          new Date(project.deadline).toLocaleDateString("de-DE", {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                          })
+                          new Date(project.deadline).toLocaleDateString(
+                            "de-DE",
+                            {
+                              day: "2-digit",
+                              month: "long",
+                              year: "numeric",
+                            },
+                          )
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -451,9 +452,7 @@ export default function ProjectDetailPage() {
                   <dt className="mb-1 text-xs font-medium text-muted-foreground">
                     Tracked time
                   </dt>
-                  <dd className="text-sm text-muted-foreground">
-                    — (Phase 6)
-                  </dd>
+                  <dd className="text-sm text-muted-foreground">— (Phase 6)</dd>
                 </div>
               </dl>
             </div>
