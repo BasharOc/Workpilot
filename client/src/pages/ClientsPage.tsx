@@ -4,6 +4,7 @@ import api from "@/api/axios";
 import { usePortalMenu } from "@/hooks/usePortalMenu";
 import { useInlineEdit } from "@/hooks/useInlineEdit";
 import { EditableCell } from "@/components/EditableCell";
+import { SearchBar } from "@/components/SearchBar";
 
 // Hook für das Dropdown-Menü, das sowohl für den Status als auch für die Aktionen verwendet wird
 function PortalMenu({
@@ -43,6 +44,7 @@ export default function ClientsPage() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [, setError] = useState("");
+  const [search, setSearch] = useState("");
   const menu = usePortalMenu();
   const inlineEdit = useInlineEdit({
     onSave: async (id, values) => {
@@ -119,6 +121,17 @@ export default function ClientsPage() {
     }
   }
 
+  const filteredClients = search.trim()
+    ? clients.filter((c) => {
+        const q = search.toLowerCase();
+        return (
+          c.name.toLowerCase().includes(q) ||
+          (c.email ?? "").toLowerCase().includes(q) ||
+          (c.company ?? "").toLowerCase().includes(q)
+        );
+      })
+    : clients;
+
   function getStatusClass(status: string) {
     if (status === "active")
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -154,6 +167,14 @@ export default function ClientsPage() {
           </button>
         </div>
 
+        <div className="mb-4">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by name, email or company…"
+          />
+        </div>
+
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full table-fixed text-sm">
@@ -183,17 +204,19 @@ export default function ClientsPage() {
               </thead>
 
               <tbody>
-                {clients.length === 0 ? (
+                {filteredClients.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
                       className="px-4 py-8 text-center text-muted-foreground"
                     >
-                      No clients yet.
+                      {search.trim()
+                        ? "No clients match your search."
+                        : "No clients yet."}
                     </td>
                   </tr>
                 ) : (
-                  clients.map((c) => (
+                  filteredClients.map((c) => (
                     <tr
                       key={c.id}
                       onMouseDown={
