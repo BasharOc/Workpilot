@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import api from "@/api/axios";
 import { usePortalMenu } from "@/hooks/usePortalMenu";
-
-type EditableField = "name" | "email" | "company";
+import { useInlineEdit } from "@/hooks/useInlineEdit";
+import { EditableCell } from "@/components/EditableCell";
 
 // Hook für das Dropdown-Menü, das sowohl für den Status als auch für die Aktionen verwendet wird
 function PortalMenu({
@@ -43,19 +43,18 @@ export default function ClientsPage() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [, setError] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeField, setActiveField] = useState<EditableField | null>(null);
-  const [savingField, setSavingField] = useState<{
-    id: string;
-    field: EditableField;
-  } | null>(null);
-  const isSavingRef = useRef(false);
-  const [editValues, setEditValues] = useState({
-    name: "",
-    email: "",
-    company: "",
-  });
   const menu = usePortalMenu();
+  const inlineEdit = useInlineEdit({
+    onSave: async (id, values) => {
+      try {
+        await api.put(`/clients/${id}`, values);
+      } catch (err) {
+        setError("Failed to update client");
+        throw err;
+      }
+    },
+    onAfterSave: () => void fetchClients(),
+  });
 
   async function fetchClients() {
     try {
@@ -103,27 +102,11 @@ export default function ClientsPage() {
   async function handleDelete(id: string) {
     try {
       await api.delete(`/clients/${id}`);
-      if (editingId === id) stopEdit();
+      if (inlineEdit.editingId === id) inlineEdit.stopEdit();
       fetchClients();
     } catch {
       setError("Failed to delete client");
     }
-  }
-
-  function stopEdit() {
-    setEditingId(null);
-    setActiveField(null);
-  }
-
-  function startEditField(client: Client, field: EditableField) {
-    setError("");
-    setEditingId(client.id);
-    setActiveField(field);
-    setEditValues({
-      name: client.name,
-      email: client.email ?? "",
-      company: client.company ?? "",
-    });
   }
 
   async function handleStatusChange(id: string, newStatus: string) {
@@ -136,62 +119,6 @@ export default function ClientsPage() {
     }
   }
 
-  async function handleSave(id: string, field: EditableField) {
-    // Synchroner Guard verhindert Doppelaufruf durch Enter + Blur
-    if (isSavingRef.current) return;
-
-    const trimmedName = editValues.name.trim();
-
-    if (!trimmedName) {
-      stopEdit();
-      return;
-    }
-
-    isSavingRef.current = true;
-    setSavingField({ id, field });
-
-    try {
-      await api.put(`/clients/${id}`, {
-        name: trimmedName,
-        email: editValues.email.trim() || "",
-        company: editValues.company.trim() || "",
-      });
-      // Sofort Edit-Mode beenden → Unterstrich verschwindet unmittelbar
-      stopEdit();
-      // Daten im Hintergrund nachladen
-      void fetchClients();
-    } catch {
-      setError("Failed to update client");
-    } finally {
-      isSavingRef.current = false;
-      setSavingField(null);
-    }
-  }
-
-  function handleEditKeyDown(
-    e: React.KeyboardEvent<HTMLInputElement>,
-    id: string,
-    field: EditableField,
-  ) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      void handleSave(id, field);
-    }
-    if (e.key === "Escape") {
-      e.preventDefault();
-      if (!isSavingRef.current) {
-        stopEdit();
-      }
-    }
-  }
-
-  function updateField(field: EditableField, value: string) {
-    setEditValues((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  }
-
   function getStatusClass(status: string) {
     if (status === "active")
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -201,10 +128,6 @@ export default function ClientsPage() {
     if (status === "inactive")
       return "bg-zinc-100 text-zinc-700 border-zinc-200";
     return "bg-red-50 text-red-700 border-red-200"; // archived
-  }
-
-  function isSaving(id: string, field: EditableField) {
-    return savingField?.id === id && savingField.field === field;
   }
 
   return (
@@ -274,162 +197,67 @@ export default function ClientsPage() {
                     <tr
                       key={c.id}
                       onMouseDown={
-                        editingId === c.id
+                        inlineEdit.editingId === c.id
                           ? (e) => e.stopPropagation()
                           : undefined
                       }
                       className="border-b border-border last:border-b-0 hover:bg-muted/30"
                     >
                       <td className="px-4 py-3 align-middle">
-                        {editingId === c.id && activeField === "name" ? (
-                          <div className="relative">
-                            <input
-                              autoFocus
-                              value={editValues.name}
-                              onChange={(e) =>
-                                updateField("name", e.target.value)
-                              }
-                              onKeyDown={(e) =>
-                                handleEditKeyDown(e, c.id, "name")
-                              }
-                              onBlur={() => void handleSave(c.id, "name")}
-                              className="w-full bg-transparent p-0 pr-5 font-medium outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
-                            />
-                            {isSaving(c.id, "name") && (
-                              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground">
-                                <svg
-                                  className="h-3.5 w-3.5 animate-spin"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                >
-                                  <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeOpacity="0.25"
-                                  />
-                                  <path
-                                    d="M21 12a9 9 0 0 0-9-9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span
-                            onClick={() => startEditField(c, "name")}
-                            className="block w-full cursor-text font-medium"
-                          >
-                            {c.name}
-                          </span>
-                        )}
+                        <EditableCell
+                          clientId={c.id}
+                          field="name"
+                          displayValue={c.name}
+                          isBold
+                          editingId={inlineEdit.editingId}
+                          activeField={inlineEdit.activeField}
+                          editValues={inlineEdit.editValues}
+                          isSaving={inlineEdit.isSaving}
+                          updateField={inlineEdit.updateField}
+                          onKeyDown={inlineEdit.handleEditKeyDown}
+                          onSave={inlineEdit.handleSave}
+                          onStartEdit={() =>
+                            inlineEdit.startEditField(c, "name")
+                          }
+                        />
                       </td>
 
                       <td className="px-4 py-3 align-middle">
-                        {editingId === c.id && activeField === "email" ? (
-                          <div className="relative">
-                            <input
-                              autoFocus
-                              value={editValues.email}
-                              onChange={(e) =>
-                                updateField("email", e.target.value)
-                              }
-                              onKeyDown={(e) =>
-                                handleEditKeyDown(e, c.id, "email")
-                              }
-                              onBlur={() => void handleSave(c.id, "email")}
-                              placeholder="Email"
-                              className="w-full bg-transparent p-0 pr-5 text-muted-foreground outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
-                            />
-                            {isSaving(c.id, "email") && (
-                              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground">
-                                <svg
-                                  className="h-3.5 w-3.5 animate-spin"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                >
-                                  <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeOpacity="0.25"
-                                  />
-                                  <path
-                                    d="M21 12a9 9 0 0 0-9-9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span
-                            onClick={() => startEditField(c, "email")}
-                            className="block w-full cursor-text text-muted-foreground"
-                          >
-                            {c.email || "-"}
-                          </span>
-                        )}
+                        <EditableCell
+                          clientId={c.id}
+                          field="email"
+                          displayValue={c.email}
+                          placeholder="Email"
+                          editingId={inlineEdit.editingId}
+                          activeField={inlineEdit.activeField}
+                          editValues={inlineEdit.editValues}
+                          isSaving={inlineEdit.isSaving}
+                          updateField={inlineEdit.updateField}
+                          onKeyDown={inlineEdit.handleEditKeyDown}
+                          onSave={inlineEdit.handleSave}
+                          onStartEdit={() =>
+                            inlineEdit.startEditField(c, "email")
+                          }
+                        />
                       </td>
 
                       <td className="px-4 py-3 align-middle">
-                        {editingId === c.id && activeField === "company" ? (
-                          <div className="relative">
-                            <input
-                              autoFocus
-                              value={editValues.company}
-                              onChange={(e) =>
-                                updateField("company", e.target.value)
-                              }
-                              onKeyDown={(e) =>
-                                handleEditKeyDown(e, c.id, "company")
-                              }
-                              onBlur={() => void handleSave(c.id, "company")}
-                              placeholder="Company"
-                              className="w-full bg-transparent p-0 pr-5 text-muted-foreground outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
-                            />
-                            {isSaving(c.id, "company") && (
-                              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground">
-                                <svg
-                                  className="h-3.5 w-3.5 animate-spin"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                >
-                                  <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeOpacity="0.25"
-                                  />
-                                  <path
-                                    d="M21 12a9 9 0 0 0-9-9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span
-                            onClick={() => startEditField(c, "company")}
-                            className="block w-full cursor-text text-muted-foreground"
-                          >
-                            {c.company || "-"}
-                          </span>
-                        )}
+                        <EditableCell
+                          clientId={c.id}
+                          field="company"
+                          displayValue={c.company}
+                          placeholder="Company"
+                          editingId={inlineEdit.editingId}
+                          activeField={inlineEdit.activeField}
+                          editValues={inlineEdit.editValues}
+                          isSaving={inlineEdit.isSaving}
+                          updateField={inlineEdit.updateField}
+                          onKeyDown={inlineEdit.handleEditKeyDown}
+                          onSave={inlineEdit.handleSave}
+                          onStartEdit={() =>
+                            inlineEdit.startEditField(c, "company")
+                          }
+                        />
                       </td>
 
                       <td className="px-4 py-3 align-middle">
