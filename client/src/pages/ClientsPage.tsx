@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import api from "@/api/axios";
 import { usePortalMenu } from "@/hooks/usePortalMenu";
 import { useInlineEdit } from "@/hooks/useInlineEdit";
@@ -41,6 +42,7 @@ interface Client {
 const PAGE_SIZE = 7;
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const isMac =
     typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
   const shortcutLabel = isMac ? "⌥N" : "Alt+N";
@@ -646,6 +648,16 @@ export default function ClientsPage() {
                           </button>
                           {menu.isOpen(`actions-${c.id}`) && (
                             <PortalMenu pos={menu.pos}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  menu.close();
+                                  navigate(`/clients/${c.id}`);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition hover:bg-muted"
+                              >
+                                View details
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => void handleArchive(c.id)}
