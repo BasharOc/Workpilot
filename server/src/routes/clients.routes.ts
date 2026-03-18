@@ -7,6 +7,7 @@ import {
   updateClient,
   deleteClient,
 } from "../controllers/clients.controller.js";
+import { listProjectsByClient } from "../controllers/projects.controller.js";
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.post("/", createClient);
 router.get("/:id", getClientById);
 router.put("/:id", updateClient);
 router.delete("/:id", deleteClient);
+router.get("/:id/projects", listProjectsByClient);
 
 export default router;

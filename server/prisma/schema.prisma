@@ -35,8 +35,25 @@ model Client {
   status    String   @default("active")
   createdAt DateTime @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects Project[]
 
   @@index([userId])
   @@map("clients")
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  clientId    String    @map("client_id")
+  title       String
+  description String?
+  status      String    @default("planned")
+  deadline    DateTime?
+  budget      Decimal?  @db.Decimal(10, 2)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("projects")
 }

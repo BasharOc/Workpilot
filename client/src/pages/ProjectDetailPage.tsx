@@ -1,0 +1,474 @@
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import api from "@/api/axios";
+
+interface Project {
+  id: string;
+  clientId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  deadline: string | null;
+  budget: string | null;
+  createdAt: string;
+  client: { id: string; name: string };
+}
+
+type EditValues = {
+  title: string;
+  description: string;
+  status: string;
+  deadline: string;
+  budget: string;
+};
+
+const STATUS_OPTIONS = [
+  { value: "planned", label: "Planned" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "on_hold", label: "On Hold" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+function getStatusClass(status: string) {
+  if (status === "in_progress")
+    return "bg-amber-50 text-amber-700 border-amber-200";
+  if (status === "planned")
+    return "bg-blue-50 text-blue-700 border-blue-200";
+  if (status === "completed")
+    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (status === "on_hold")
+    return "bg-zinc-100 text-zinc-600 border-zinc-200";
+  return "bg-red-50 text-red-700 border-red-200";
+}
+
+function getStatusLabel(status: string) {
+  return STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status;
+}
+
+// Fortschrittsbalken — bleibt 0% bis Phase 5 (Tasks)
+function ProgressBar({ percent }: { percent: number }) {
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div
+        className="h-full rounded-full bg-primary transition-all"
+        style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+      />
+    </div>
+  );
+}
+
+export default function ProjectDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [project, setProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [editValues, setEditValues] = useState<EditValues>({
+    title: "",
+    description: "",
+    status: "planned",
+    deadline: "",
+    budget: "",
+  });
+
+  useEffect(() => {
+    async function fetchProject() {
+      try {
+        const { data } = await api.get(`/projects/${id}`);
+        setProject(data);
+      } catch {
+        setError("Project not found");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    void fetchProject();
+  }, [id]);
+
+  function startEdit() {
+    if (!project) return;
+    setEditValues({
+      title: project.title,
+      description: project.description ?? "",
+      status: project.status,
+      deadline: project.deadline
+        ? new Date(project.deadline).toISOString().slice(0, 10)
+        : "",
+      budget: project.budget != null ? String(parseFloat(project.budget)) : "",
+    });
+    setIsEditing(true);
+    setError("");
+  }
+
+  function cancelEdit() {
+    setIsEditing(false);
+    setError("");
+  }
+
+  async function handleSave() {
+    if (!editValues.title.trim()) {
+      setError("Title is required");
+      return;
+    }
+    setIsSaving(true);
+    setError("");
+    try {
+      const { data } = await api.put(`/projects/${id}`, {
+        title: editValues.title.trim(),
+        description: editValues.description.trim() || null,
+        status: editValues.status,
+        deadline: editValues.deadline
+          ? new Date(editValues.deadline).toISOString()
+          : null,
+        budget: editValues.budget ? parseFloat(editValues.budget) : null,
+      });
+      setProject(data);
+      setIsEditing(false);
+    } catch {
+      setError("Failed to save changes");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Project not found.</p>
+        <Link to="/projects" className="text-sm text-primary underline">
+          Back to projects
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full px-4 py-6 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-4xl">
+        {/* Breadcrumb */}
+        <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+          <Link to="/projects" className="transition hover:text-foreground">
+            Projects
+          </Link>
+          <span>/</span>
+          <Link
+            to={`/clients/${project.client.id}`}
+            className="transition hover:text-foreground"
+          >
+            {project.client.name}
+          </Link>
+          <span>/</span>
+          <span className="text-foreground">{project.title}</span>
+        </div>
+
+        {/* Header */}
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold tracking-tight">
+              {project.title}
+            </h1>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getStatusClass(project.status)}`}
+              >
+                {getStatusLabel(project.status)}
+              </span>
+              <Link
+                to={`/clients/${project.client.id}`}
+                className="text-sm text-muted-foreground transition hover:text-foreground hover:underline"
+              >
+                {project.client.name}
+              </Link>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {isEditing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="inline-flex h-9 cursor-pointer items-center rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSave()}
+                  disabled={isSaving}
+                  className="inline-flex h-9 cursor-pointer items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {isSaving ? "Saving…" : "Save changes"}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={startEdit}
+                className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Linke Spalte: Hauptinfos */}
+          <div className="space-y-4 lg:col-span-2">
+            {/* Description */}
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-5 py-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Description
+                </h2>
+              </div>
+              <div className="px-5 py-4">
+                {isEditing ? (
+                  <textarea
+                    rows={4}
+                    value={editValues.description}
+                    onChange={(e) =>
+                      setEditValues((p) => ({
+                        ...p,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Describe the project…"
+                    className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                ) : project.description ? (
+                  <p className="whitespace-pre-wrap text-sm">
+                    {project.description}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No description yet.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-5 py-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Progress
+                </h2>
+              </div>
+              <div className="px-5 py-4">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Task completion</span>
+                  <span className="font-medium">0%</span>
+                </div>
+                <ProgressBar percent={0} />
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Tasks werden in Phase 5 implementiert.
+                </p>
+              </div>
+            </div>
+
+            {/* Tasks placeholder */}
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-5 py-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Tasks
+                </h2>
+              </div>
+              <div className="px-5 py-10 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Kanban-Board & Task-Liste kommen in Phase 5.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Rechte Spalte: Meta-Infos */}
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-5 py-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Details
+                </h2>
+              </div>
+              <dl className="divide-y divide-border">
+                {/* Status */}
+                <div className="px-5 py-3">
+                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                    Status
+                  </dt>
+                  <dd>
+                    {isEditing ? (
+                      <div className="relative">
+                        <select
+                          value={editValues.status}
+                          onChange={(e) =>
+                            setEditValues((p) => ({
+                              ...p,
+                              status: e.target.value,
+                            }))
+                          }
+                          className="w-full appearance-none rounded-md border border-border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusClass(project.status)}`}
+                      >
+                        {getStatusLabel(project.status)}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+
+                {/* Deadline */}
+                <div className="px-5 py-3">
+                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                    Deadline
+                  </dt>
+                  <dd>
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        value={editValues.deadline}
+                        onChange={(e) =>
+                          setEditValues((p) => ({
+                            ...p,
+                            deadline: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    ) : (
+                      <span className="text-sm">
+                        {project.deadline ? (
+                          new Date(project.deadline).toLocaleDateString("de-DE", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+
+                {/* Budget */}
+                <div className="px-5 py-3">
+                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                    Budget
+                  </dt>
+                  <dd>
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editValues.budget}
+                        onChange={(e) =>
+                          setEditValues((p) => ({
+                            ...p,
+                            budget: e.target.value,
+                          }))
+                        }
+                        placeholder="0.00"
+                        className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    ) : (
+                      <span className="text-sm">
+                        {project.budget != null ? (
+                          `€ ${parseFloat(project.budget).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+
+                {/* Title (nur im Edit-Modus) */}
+                {isEditing && (
+                  <div className="px-5 py-3">
+                    <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                      Title
+                    </dt>
+                    <dd>
+                      <input
+                        type="text"
+                        value={editValues.title}
+                        onChange={(e) =>
+                          setEditValues((p) => ({
+                            ...p,
+                            title: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </dd>
+                  </div>
+                )}
+
+                {/* Client */}
+                <div className="px-5 py-3">
+                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                    Client
+                  </dt>
+                  <dd>
+                    <Link
+                      to={`/clients/${project.client.id}`}
+                      className="text-sm text-primary underline"
+                    >
+                      {project.client.name}
+                    </Link>
+                  </dd>
+                </div>
+
+                {/* Tracked time placeholder */}
+                <div className="px-5 py-3">
+                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                    Tracked time
+                  </dt>
+                  <dd className="text-sm text-muted-foreground">
+                    — (Phase 6)
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            <p className="text-right text-xs text-muted-foreground">
+              Created{" "}
+              {new Date(project.createdAt).toLocaleDateString("de-DE", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

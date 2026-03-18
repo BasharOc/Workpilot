@@ -6,6 +6,8 @@ import RegisterPage from "@/pages/RegisterPage";
 import MaintenancePage from "@/pages/MaintenancePage";
 import ClientsPage from "@/pages/ClientsPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
+import ProjectsPage from "@/pages/ProjectsPage";
+import ProjectDetailPage from "@/pages/ProjectDetailPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -57,6 +59,12 @@ function DashboardPlaceholder() {
         className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
       >
         Clients
+      </Link>
+      <Link
+        to="/projects"
+        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+      >
+        Projects
       </Link>
       <button
         onClick={logout}
@@ -155,6 +163,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <ClientDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute>
+              <ProjectsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:id"
+          element={
+            <ProtectedRoute>
+              <ProjectDetailPage />
             </ProtectedRoute>
           }
         />

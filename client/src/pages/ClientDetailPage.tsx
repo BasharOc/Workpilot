@@ -14,6 +14,33 @@ interface Client {
   createdAt: string;
 }
 
+interface Project {
+  id: string;
+  title: string;
+  status: string;
+  deadline: string | null;
+  budget: string | null;
+}
+
+function getProjectStatusClass(status: string) {
+  if (status === "in_progress") return "bg-amber-50 text-amber-700 border-amber-200";
+  if (status === "planned") return "bg-blue-50 text-blue-700 border-blue-200";
+  if (status === "completed") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (status === "on_hold") return "bg-zinc-100 text-zinc-600 border-zinc-200";
+  return "bg-red-50 text-red-700 border-red-200";
+}
+
+function getProjectStatusLabel(status: string) {
+  const map: Record<string, string> = {
+    planned: "Planned",
+    in_progress: "In Progress",
+    on_hold: "On Hold",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+  return map[status] ?? status;
+}
+
 type EditValues = {
   name: string;
   email: string;
@@ -36,6 +63,7 @@ function getStatusClass(status: string) {
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [client, setClient] = useState<Client | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -53,8 +81,12 @@ export default function ClientDetailPage() {
   useEffect(() => {
     async function fetchClient() {
       try {
-        const { data } = await api.get(`/clients/${id}`);
-        setClient(data);
+        const [clientRes, projectsRes] = await Promise.all([
+          api.get(`/clients/${id}`),
+          api.get(`/clients/${id}/projects`),
+        ]);
+        setClient(clientRes.data);
+        setProjects(projectsRes.data);
       } catch {
         setError("Client not found");
       } finally {
@@ -314,18 +346,54 @@ export default function ClientDetailPage() {
           </div>
         </div>
 
-        {/* Projects — Placeholder bis Phase 4 */}
+        {/* Projects */}
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-5 py-3">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Projects
+              Projects ({projects.length})
             </h2>
+            <Link
+              to={`/projects?clientId=${client.id}`}
+              className="text-xs text-primary transition hover:underline"
+            >
+              View all
+            </Link>
           </div>
-          <div className="px-5 py-10 text-center">
-            <p className="text-sm text-muted-foreground">
-              Projects will appear here once Phase 4 is implemented.
-            </p>
-          </div>
+          {projects.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <p className="text-sm text-muted-foreground">No projects yet.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {projects.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    to={`/projects/${p.id}`}
+                    className="flex items-center justify-between px-5 py-3 transition hover:bg-muted/30"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{p.title}</p>
+                      {p.deadline && (
+                        <p className="text-xs text-muted-foreground">
+                          Due{" "}
+                          {new Date(p.deadline).toLocaleDateString("de-DE", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`ml-3 shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getProjectStatusClass(p.status)}`}
+                    >
+                      {getProjectStatusLabel(p.status)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <p className="mt-4 text-right text-xs text-muted-foreground">
