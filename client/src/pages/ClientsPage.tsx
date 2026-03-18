@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import api from "@/api/axios";
 import { usePortalMenu } from "@/hooks/usePortalMenu";
@@ -25,6 +25,7 @@ function PortalMenu({
   );
 }
 
+// interface Client entspricht dem Prisma-Modell, angepasst an die Felder, die wir in der UI verwenden
 interface Client {
   id: string;
   name: string;
@@ -44,6 +45,11 @@ export default function ClientsPage() {
   const [, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeField, setActiveField] = useState<EditableField | null>(null);
+  const [savingField, setSavingField] = useState<{
+    id: string;
+    field: EditableField;
+  } | null>(null);
+  const isSavingRef = useRef(false);
   const [editValues, setEditValues] = useState({
     name: "",
     email: "",
@@ -130,14 +136,19 @@ export default function ClientsPage() {
     }
   }
 
-  async function handleSave(id: string) {
+  async function handleSave(id: string, field: EditableField) {
+    // Synchroner Guard verhindert Doppelaufruf durch Enter + Blur
+    if (isSavingRef.current) return;
+
     const trimmedName = editValues.name.trim();
 
-    // Leerer Name → Änderungen stil verwerfen
     if (!trimmedName) {
       stopEdit();
       return;
     }
+
+    isSavingRef.current = true;
+    setSavingField({ id, field });
 
     try {
       await api.put(`/clients/${id}`, {
@@ -145,24 +156,32 @@ export default function ClientsPage() {
         email: editValues.email.trim() || "",
         company: editValues.company.trim() || "",
       });
+      // Sofort Edit-Mode beenden → Unterstrich verschwindet unmittelbar
       stopEdit();
-      fetchClients();
+      // Daten im Hintergrund nachladen
+      void fetchClients();
     } catch {
       setError("Failed to update client");
+    } finally {
+      isSavingRef.current = false;
+      setSavingField(null);
     }
   }
 
   function handleEditKeyDown(
     e: React.KeyboardEvent<HTMLInputElement>,
     id: string,
+    field: EditableField,
   ) {
     if (e.key === "Enter") {
       e.preventDefault();
-      void handleSave(id);
+      void handleSave(id, field);
     }
     if (e.key === "Escape") {
       e.preventDefault();
-      stopEdit();
+      if (!isSavingRef.current) {
+        stopEdit();
+      }
     }
   }
 
@@ -182,6 +201,10 @@ export default function ClientsPage() {
     if (status === "inactive")
       return "bg-zinc-100 text-zinc-700 border-zinc-200";
     return "bg-red-50 text-red-700 border-red-200"; // archived
+  }
+
+  function isSaving(id: string, field: EditableField) {
+    return savingField?.id === id && savingField.field === field;
   }
 
   return (
@@ -259,16 +282,44 @@ export default function ClientsPage() {
                     >
                       <td className="px-4 py-3 align-middle">
                         {editingId === c.id && activeField === "name" ? (
-                          <input
-                            autoFocus
-                            value={editValues.name}
-                            onChange={(e) =>
-                              updateField("name", e.target.value)
-                            }
-                            onKeyDown={(e) => handleEditKeyDown(e, c.id)}
-                            onBlur={() => void handleSave(c.id)}
-                            className="w-full bg-transparent p-0 font-medium outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
-                          />
+                          <div className="relative">
+                            <input
+                              autoFocus
+                              value={editValues.name}
+                              onChange={(e) =>
+                                updateField("name", e.target.value)
+                              }
+                              onKeyDown={(e) =>
+                                handleEditKeyDown(e, c.id, "name")
+                              }
+                              onBlur={() => void handleSave(c.id, "name")}
+                              className="w-full bg-transparent p-0 pr-5 font-medium outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
+                            />
+                            {isSaving(c.id, "name") && (
+                              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                <svg
+                                  className="h-3.5 w-3.5 animate-spin"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                >
+                                  <circle
+                                    cx="12"
+                                    cy="12"
+                                    r="9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeOpacity="0.25"
+                                  />
+                                  <path
+                                    d="M21 12a9 9 0 0 0-9-9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span
                             onClick={() => startEditField(c, "name")}
@@ -281,17 +332,45 @@ export default function ClientsPage() {
 
                       <td className="px-4 py-3 align-middle">
                         {editingId === c.id && activeField === "email" ? (
-                          <input
-                            autoFocus
-                            value={editValues.email}
-                            onChange={(e) =>
-                              updateField("email", e.target.value)
-                            }
-                            onKeyDown={(e) => handleEditKeyDown(e, c.id)}
-                            onBlur={() => void handleSave(c.id)}
-                            placeholder="Email"
-                            className="w-full bg-transparent p-0 text-muted-foreground outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
-                          />
+                          <div className="relative">
+                            <input
+                              autoFocus
+                              value={editValues.email}
+                              onChange={(e) =>
+                                updateField("email", e.target.value)
+                              }
+                              onKeyDown={(e) =>
+                                handleEditKeyDown(e, c.id, "email")
+                              }
+                              onBlur={() => void handleSave(c.id, "email")}
+                              placeholder="Email"
+                              className="w-full bg-transparent p-0 pr-5 text-muted-foreground outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
+                            />
+                            {isSaving(c.id, "email") && (
+                              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                <svg
+                                  className="h-3.5 w-3.5 animate-spin"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                >
+                                  <circle
+                                    cx="12"
+                                    cy="12"
+                                    r="9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeOpacity="0.25"
+                                  />
+                                  <path
+                                    d="M21 12a9 9 0 0 0-9-9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span
                             onClick={() => startEditField(c, "email")}
@@ -304,17 +383,45 @@ export default function ClientsPage() {
 
                       <td className="px-4 py-3 align-middle">
                         {editingId === c.id && activeField === "company" ? (
-                          <input
-                            autoFocus
-                            value={editValues.company}
-                            onChange={(e) =>
-                              updateField("company", e.target.value)
-                            }
-                            onKeyDown={(e) => handleEditKeyDown(e, c.id)}
-                            onBlur={() => void handleSave(c.id)}
-                            placeholder="Company"
-                            className="w-full bg-transparent p-0 text-muted-foreground outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
-                          />
+                          <div className="relative">
+                            <input
+                              autoFocus
+                              value={editValues.company}
+                              onChange={(e) =>
+                                updateField("company", e.target.value)
+                              }
+                              onKeyDown={(e) =>
+                                handleEditKeyDown(e, c.id, "company")
+                              }
+                              onBlur={() => void handleSave(c.id, "company")}
+                              placeholder="Company"
+                              className="w-full bg-transparent p-0 pr-5 text-muted-foreground outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
+                            />
+                            {isSaving(c.id, "company") && (
+                              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                <svg
+                                  className="h-3.5 w-3.5 animate-spin"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                >
+                                  <circle
+                                    cx="12"
+                                    cy="12"
+                                    r="9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeOpacity="0.25"
+                                  />
+                                  <path
+                                    d="M21 12a9 9 0 0 0-9-9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span
                             onClick={() => startEditField(c, "company")}
