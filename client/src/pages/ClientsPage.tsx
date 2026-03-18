@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import api from "@/api/axios";
 import { usePortalMenu } from "@/hooks/usePortalMenu";
@@ -46,6 +46,8 @@ export default function ClientsPage() {
   const shortcutLabel = isMac ? "⌥N" : "Alt+N";
   const archiveShortcut = isMac ? "⌥A" : "Alt+A";
   const deleteShortcut = isMac ? "⌥D" : "Alt+D";
+  const searchShortcut = isMac ? "⌥F" : "Alt+F";
+  const searchRef = useRef<HTMLInputElement>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -58,9 +60,15 @@ export default function ClientsPage() {
   const [archivedPage, setArchivedPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [inlineEmailError, setInlineEmailError] = useState("");
   const menu = usePortalMenu();
   const inlineEdit = useInlineEdit({
     onSave: async (id, values) => {
+      if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+        setInlineEmailError("Invalid email address");
+        throw new Error("invalid email");
+      }
+      setInlineEmailError("");
       try {
         await api.put(`/clients/${id}`, values);
       } catch (err) {
@@ -70,6 +78,15 @@ export default function ClientsPage() {
     },
     onAfterSave: () => void fetchClients(),
   });
+
+  // Clear email error when user edits the email field
+  const updateFieldWithClear = (
+    field: Parameters<typeof inlineEdit.updateField>[0],
+    value: string,
+  ) => {
+    if (field === "email") setInlineEmailError("");
+    inlineEdit.updateField(field, value);
+  };
 
   async function fetchClients() {
     try {
@@ -95,6 +112,18 @@ export default function ClientsPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isMac]);
+
+  useEffect(() => {
+    function onSearchKey(e: KeyboardEvent) {
+      if (e.altKey && e.code === "KeyF") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    }
+    window.addEventListener("keydown", onSearchKey);
+    return () => window.removeEventListener("keydown", onSearchKey);
+  }, []);
 
   useEffect(() => {
     function onSelectionKeyDown(e: KeyboardEvent) {
@@ -196,7 +225,11 @@ export default function ClientsPage() {
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const s = new Set(prev);
-      if (s.has(id)) { s.delete(id); } else { s.add(id); }
+      if (s.has(id)) {
+        s.delete(id);
+      } else {
+        s.add(id);
+      }
       return s;
     });
   }
@@ -291,12 +324,13 @@ export default function ClientsPage() {
 
         <div className="mb-3">
           <SearchBar
+            ref={searchRef}
             value={search}
             onChange={(v) => {
               setSearch(v);
               setActivePage(1);
             }}
-            placeholder="Search by name, email or company…"
+            placeholder={`Search by name, email or company… (${searchShortcut})`}
           />
         </div>
 
@@ -338,11 +372,7 @@ export default function ClientsPage() {
             </>
           ) : (
             <>
-              <span className="text-sm text-muted-foreground">
-                {filteredClients.length}{" "}
-                {filteredClients.length === 1 ? "Client" : "Clients"}
-              </span>
-              <div className="flex items-center gap-2">
+              <div className="ml-auto flex items-center gap-2">
                 <div className="relative">
                   <select
                     value={statusFilter}
@@ -492,11 +522,16 @@ export default function ClientsPage() {
                           activeField={inlineEdit.activeField}
                           editValues={inlineEdit.editValues}
                           isSaving={inlineEdit.isSaving}
-                          updateField={inlineEdit.updateField}
+                          updateField={updateFieldWithClear}
                           onKeyDown={inlineEdit.handleEditKeyDown}
                           onSave={inlineEdit.handleSave}
                           onStartEdit={() =>
                             inlineEdit.startEditField(c, "email")
+                          }
+                          error={
+                            inlineEdit.editingId === c.id
+                              ? inlineEmailError
+                              : undefined
                           }
                         />
                       </td>
@@ -638,9 +673,14 @@ export default function ClientsPage() {
                 {Array.from({
                   length: Math.max(0, PAGE_SIZE - paginatedActive.length),
                 }).map((_, i) => (
-                  <tr key={`empty-${i}`} className="border-b border-border last:border-b-0">
+                  <tr
+                    key={`empty-${i}`}
+                    className="border-b border-border last:border-b-0"
+                  >
                     {Array.from({ length: 6 }).map((__, j) => (
-                      <td key={j} className="px-4 py-3 align-middle"><span className="block text-sm">&nbsp;</span></td>
+                      <td key={j} className="px-4 py-3 align-middle">
+                        <span className="block text-sm">&nbsp;</span>
+                      </td>
                     ))}
                   </tr>
                 ))}
