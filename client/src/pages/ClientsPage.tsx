@@ -1,7 +1,29 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import api from "@/api/axios";
+import { usePortalMenu } from "@/hooks/usePortalMenu";
 
 type EditableField = "name" | "email" | "company";
+
+// Hook für das Dropdown-Menü, das sowohl für den Status als auch für die Aktionen verwendet wird
+function PortalMenu({
+  pos,
+  children,
+}: {
+  pos: { top: number; left: number };
+  children: React.ReactNode;
+}) {
+  return createPortal(
+    <div
+      style={{ top: pos.top, left: pos.left }}
+      onMouseDown={(e) => e.stopPropagation()}
+      className="fixed z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
 
 interface Client {
   id: string;
@@ -15,10 +37,11 @@ interface Client {
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
-  const [error, setError] = useState("");
+  const [, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeField, setActiveField] = useState<EditableField | null>(null);
   const [editValues, setEditValues] = useState({
@@ -26,6 +49,7 @@ export default function ClientsPage() {
     email: "",
     company: "",
   });
+  const menu = usePortalMenu();
 
   async function fetchClients() {
     try {
@@ -40,8 +64,15 @@ export default function ClientsPage() {
     fetchClients();
   }, []);
 
+  function closeAddModal() {
+    setIsAddModalOpen(false);
+    setName("");
+    setEmail("");
+    setCompany("");
+    setError("");
+  }
+
   async function handleAdd(e: React.FormEvent) {
-    //Verhinder den Seitenreload
     e.preventDefault();
     setError("");
 
@@ -50,16 +81,13 @@ export default function ClientsPage() {
       return;
     }
 
-    // .trim() entfernt überflüssige Leerzeichen
     try {
       await api.post("/clients", {
         name: name.trim(),
         email: email.trim() || undefined,
         company: company.trim() || undefined,
       });
-      setName("");
-      setEmail("");
-      setCompany("");
+      closeAddModal();
       fetchClients();
     } catch {
       setError("Failed to create client");
@@ -69,21 +97,11 @@ export default function ClientsPage() {
   async function handleDelete(id: string) {
     try {
       await api.delete(`/clients/${id}`);
+      if (editingId === id) stopEdit();
       fetchClients();
     } catch {
       setError("Failed to delete client");
     }
-  }
-
-  function startEdit(client: Client) {
-    setError("");
-    setEditingId(client.id);
-    setActiveField(null);
-    setEditValues({
-      name: client.name,
-      email: client.email ?? "",
-      company: client.company ?? "",
-    });
   }
 
   function stopEdit() {
@@ -91,11 +109,33 @@ export default function ClientsPage() {
     setActiveField(null);
   }
 
+  function startEditField(client: Client, field: EditableField) {
+    setError("");
+    setEditingId(client.id);
+    setActiveField(field);
+    setEditValues({
+      name: client.name,
+      email: client.email ?? "",
+      company: client.company ?? "",
+    });
+  }
+
+  async function handleStatusChange(id: string, newStatus: string) {
+    try {
+      await api.put(`/clients/${id}`, { status: newStatus });
+      menu.close();
+      fetchClients();
+    } catch {
+      setError("Failed to update status");
+    }
+  }
+
   async function handleSave(id: string) {
     const trimmedName = editValues.name.trim();
 
+    // Leerer Name → Änderungen stil verwerfen
     if (!trimmedName) {
-      setError("Name is required");
+      stopEdit();
       return;
     }
 
@@ -120,6 +160,10 @@ export default function ClientsPage() {
       e.preventDefault();
       void handleSave(id);
     }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      stopEdit();
+    }
   }
 
   function updateField(field: EditableField, value: string) {
@@ -129,175 +173,328 @@ export default function ClientsPage() {
     }));
   }
 
+  function getStatusClass(status: string) {
+    if (status === "active")
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (status === "lead") return "bg-blue-50 text-blue-700 border-blue-200";
+    if (status === "paused")
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    if (status === "inactive")
+      return "bg-zinc-100 text-zinc-700 border-zinc-200";
+    return "bg-red-50 text-red-700 border-red-200"; // archived
+  }
+
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">Clients</h1>
+    <div className="w-full px-4 py-6 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage contacts in a clean, table-first workspace.
+            </p>
+          </div>
 
-      <form onSubmit={handleAdd} className="mb-6 flex flex-col gap-2">
-        <input
-          placeholder="Name *"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="rounded border px-3 py-2"
-        />
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded border px-3 py-2"
-        />
-        <input
-          placeholder="Company"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          className="rounded border px-3 py-2"
-        />
-        <button
-          type="submit"
-          className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-        >
-          Add Client
-        </button>
-      </form>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setIsAddModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+          >
+            <span className="text-base leading-none">+</span>
+            Add Client
+          </button>
+        </div>
 
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-fixed text-sm">
+              <colgroup>
+                <col className="w-[26%]" />
+                <col className="w-[26%]" />
+                <col className="w-[22%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
+              </colgroup>
+              <thead className="bg-muted/50">
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Email
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Company
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"></th>
+                </tr>
+              </thead>
 
-      {clients.length === 0 ? (
-        <p className="text-muted-foreground">No clients yet.</p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {clients.map((c) => (
-            <li
-              key={c.id}
-              className="flex items-center justify-between rounded border px-4 py-3"
-            >
-              <div className="min-w-0 flex-1 pr-4">
-                {editingId === c.id && activeField === "name" ? (
-                  <input
-                    autoFocus
-                    value={editValues.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                    onKeyDown={(e) => handleEditKeyDown(e, c.id)}
-                    onBlur={() => setActiveField(null)}
-                    className="w-full rounded border px-2 py-1 font-medium"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      editingId === c.id ? setActiveField("name") : undefined
-                    }
-                    className="w-full text-left font-medium"
-                  >
-                    {editingId === c.id
-                      ? editValues.name || "(No name)"
-                      : c.name}
-                  </button>
-                )}
-
-                {editingId === c.id && activeField === "company" ? (
-                  <input
-                    autoFocus
-                    value={editValues.company}
-                    onChange={(e) => updateField("company", e.target.value)}
-                    onKeyDown={(e) => handleEditKeyDown(e, c.id)}
-                    onBlur={() => setActiveField(null)}
-                    className="mt-1 w-full rounded border px-2 py-1 text-sm"
-                    placeholder="Company"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      editingId === c.id ? setActiveField("company") : undefined
-                    }
-                    className="mt-1 w-full text-left text-sm text-muted-foreground"
-                  >
-                    {editingId === c.id
-                      ? editValues.company || "Company"
-                      : c.company || "Company"}
-                  </button>
-                )}
-
-                {editingId === c.id && activeField === "email" ? (
-                  <input
-                    autoFocus
-                    value={editValues.email}
-                    onChange={(e) => updateField("email", e.target.value)}
-                    onKeyDown={(e) => handleEditKeyDown(e, c.id)}
-                    onBlur={() => setActiveField(null)}
-                    className="mt-1 w-full rounded border px-2 py-1 text-sm"
-                    placeholder="Email"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      editingId === c.id ? setActiveField("email") : undefined
-                    }
-                    className="mt-1 w-full text-left text-sm text-muted-foreground"
-                  >
-                    {editingId === c.id
-                      ? editValues.email || "Email"
-                      : c.email || "Email"}
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                {editingId === c.id ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleSave(c.id)}
-                      className="text-sm text-green-700 hover:underline"
+              <tbody>
+                {clients.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-8 text-center text-muted-foreground"
                     >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={stopEdit}
-                      className="text-sm text-muted-foreground hover:underline"
-                    >
-                      Cancel
-                    </button>
-                  </>
+                      No clients yet.
+                    </td>
+                  </tr>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => startEdit(c)}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted"
-                    aria-label={`Edit ${c.name}`}
-                    title="Edit client"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
+                  clients.map((c) => (
+                    <tr
+                      key={c.id}
+                      onMouseDown={
+                        editingId === c.id
+                          ? (e) => e.stopPropagation()
+                          : undefined
+                      }
+                      className="border-b border-border last:border-b-0 hover:bg-muted/30"
                     >
-                      <path d="M12 20h9" />
-                      <path d="m16.5 3.5 4 4L7 21l-4 1 1-4Z" />
-                    </svg>
-                  </button>
-                )}
+                      <td className="px-4 py-3 align-middle">
+                        {editingId === c.id && activeField === "name" ? (
+                          <input
+                            autoFocus
+                            value={editValues.name}
+                            onChange={(e) =>
+                              updateField("name", e.target.value)
+                            }
+                            onKeyDown={(e) => handleEditKeyDown(e, c.id)}
+                            onBlur={() => void handleSave(c.id)}
+                            className="w-full bg-transparent p-0 font-medium outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
+                          />
+                        ) : (
+                          <span
+                            onClick={() => startEditField(c, "name")}
+                            className="block w-full cursor-text font-medium"
+                          >
+                            {c.name}
+                          </span>
+                        )}
+                      </td>
 
+                      <td className="px-4 py-3 align-middle">
+                        {editingId === c.id && activeField === "email" ? (
+                          <input
+                            autoFocus
+                            value={editValues.email}
+                            onChange={(e) =>
+                              updateField("email", e.target.value)
+                            }
+                            onKeyDown={(e) => handleEditKeyDown(e, c.id)}
+                            onBlur={() => void handleSave(c.id)}
+                            placeholder="Email"
+                            className="w-full bg-transparent p-0 text-muted-foreground outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
+                          />
+                        ) : (
+                          <span
+                            onClick={() => startEditField(c, "email")}
+                            className="block w-full cursor-text text-muted-foreground"
+                          >
+                            {c.email || "-"}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3 align-middle">
+                        {editingId === c.id && activeField === "company" ? (
+                          <input
+                            autoFocus
+                            value={editValues.company}
+                            onChange={(e) =>
+                              updateField("company", e.target.value)
+                            }
+                            onKeyDown={(e) => handleEditKeyDown(e, c.id)}
+                            onBlur={() => void handleSave(c.id)}
+                            placeholder="Company"
+                            className="w-full bg-transparent p-0 text-muted-foreground outline-none border-0 border-b border-foreground/40 focus:border-foreground/70"
+                          />
+                        ) : (
+                          <span
+                            onClick={() => startEditField(c, "company")}
+                            className="block w-full cursor-text text-muted-foreground"
+                          >
+                            {c.company || "-"}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3 align-middle">
+                        <div onMouseDown={(e) => e.stopPropagation()}>
+                          <button
+                            ref={(el) => {
+                              menu.refs.current[`status-${c.id}`] = el;
+                            }}
+                            type="button"
+                            onClick={() => menu.toggle(`status-${c.id}`)}
+                            className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium capitalize transition hover:opacity-80 ${getStatusClass(c.status)}`}
+                          >
+                            {c.status}
+                            <svg
+                              className="h-3 w-3 opacity-60"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                            >
+                              <path d="m6 9 6 6 6-6" />
+                            </svg>
+                          </button>
+
+                          {menu.isOpen(`status-${c.id}`) && (
+                            <PortalMenu pos={menu.pos}>
+                              {(
+                                [
+                                  "lead",
+                                  "active",
+                                  "paused",
+                                  "inactive",
+                                  "archived",
+                                ] as const
+                              ).map((s) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() =>
+                                    void handleStatusChange(c.id, s)
+                                  }
+                                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs capitalize transition hover:bg-muted ${
+                                    c.status === s ? "font-semibold" : ""
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block h-2 w-2 flex-shrink-0 rounded-full ${
+                                      s === "active"
+                                        ? "bg-emerald-500"
+                                        : s === "lead"
+                                          ? "bg-blue-500"
+                                          : s === "paused"
+                                            ? "bg-amber-500"
+                                            : s === "inactive"
+                                              ? "bg-zinc-400"
+                                              : "bg-red-400"
+                                    }`}
+                                  />
+                                  {s}
+                                </button>
+                              ))}
+                            </PortalMenu>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3 align-middle">
+                        <div
+                          className="flex items-center justify-end"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            ref={(el) => {
+                              menu.refs.current[`actions-${c.id}`] = el;
+                            }}
+                            type="button"
+                            onClick={() => menu.toggle(`actions-${c.id}`)}
+                            className="rounded p-1 text-muted-foreground transition hover:bg-muted"
+                            aria-label="More options"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              className="h-4 w-4"
+                            >
+                              <circle cx="12" cy="5" r="1.5" />
+                              <circle cx="12" cy="12" r="1.5" />
+                              <circle cx="12" cy="19" r="1.5" />
+                            </svg>
+                          </button>
+                          {menu.isOpen(`actions-${c.id}`) && (
+                            <PortalMenu pos={menu.pos}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  menu.close();
+                                  void handleDelete(c.id);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-600 transition hover:bg-muted"
+                              >
+                                Delete
+                              </button>
+                            </PortalMenu>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-xl">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <h2 className="text-lg font-semibold cursor-pointer">
+                  Add Client
+                </h2>
                 <button
                   type="button"
-                  onClick={() => handleDelete(c.id)}
-                  className="text-sm text-red-600 hover:underline"
+                  onClick={closeAddModal}
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-md text-2xl leading-none text-muted-foreground hover:bg-muted cursor-pointer"
+                  aria-label="Close modal"
                 >
-                  Delete
+                  ×
                 </button>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
+
+              <form onSubmit={handleAdd} className="space-y-3 px-5 py-4">
+                <input
+                  placeholder="Name *"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-md border border-border px-3 py-2"
+                />
+                <input
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-md border border-border px-3 py-2"
+                />
+                <input
+                  placeholder="Company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className="w-full rounded-md border border-border px-3 py-2"
+                />
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={closeAddModal}
+                    className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

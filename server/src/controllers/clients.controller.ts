@@ -10,7 +10,9 @@ const createClientSchema = z.object({
   company: z.string().optional(),
   address: z.string().optional(),
   notes: z.string().optional(),
-  status: z.enum(["active", "inactive"]).optional(),
+  status: z
+    .enum(["lead", "active", "paused", "inactive", "archived"])
+    .optional(),
 });
 
 const updateClientSchema = createClientSchema.partial();
