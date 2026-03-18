@@ -5,6 +5,7 @@ import { usePortalMenu } from "@/hooks/usePortalMenu";
 import { useInlineEdit } from "@/hooks/useInlineEdit";
 import { EditableCell } from "@/components/EditableCell";
 import { SearchBar } from "@/components/SearchBar";
+import { Pagination } from "@/components/Pagination";
 
 // Hook für das Dropdown-Menü, das sowohl für den Status als auch für die Aktionen verwendet wird
 function PortalMenu({
@@ -37,6 +38,8 @@ interface Client {
   createdAt: string;
 }
 
+const PAGE_SIZE = 10;
+
 export default function ClientsPage() {
   const isMac =
     typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
@@ -49,6 +52,8 @@ export default function ClientsPage() {
   const [, setError] = useState("");
   const [search, setSearch] = useState("");
   const [emailWarning, setEmailWarning] = useState(false);
+  const [activePage, setActivePage] = useState(1);
+  const [archivedPage, setArchivedPage] = useState(1);
   const menu = usePortalMenu();
   const inlineEdit = useInlineEdit({
     onSave: async (id, values) => {
@@ -171,6 +176,15 @@ export default function ClientsPage() {
       })
     : activeClients;
 
+  const paginatedActive = filteredClients.slice(
+    (activePage - 1) * PAGE_SIZE,
+    activePage * PAGE_SIZE,
+  );
+  const paginatedArchived = archivedClients.slice(
+    (archivedPage - 1) * PAGE_SIZE,
+    archivedPage * PAGE_SIZE,
+  );
+
   function getStatusClass(status: string) {
     if (status === "active")
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -213,7 +227,10 @@ export default function ClientsPage() {
         <div className="mb-4">
           <SearchBar
             value={search}
-            onChange={setSearch}
+            onChange={(v) => {
+              setSearch(v);
+              setActivePage(1);
+            }}
             placeholder="Search by name, email or company…"
           />
         </div>
@@ -259,7 +276,7 @@ export default function ClientsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredClients.map((c) => (
+                  paginatedActive.map((c) => (
                     <tr
                       key={c.id}
                       onMouseDown={
@@ -444,6 +461,13 @@ export default function ClientsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={activePage}
+            totalPages={Math.ceil(filteredClients.length / PAGE_SIZE)}
+            total={filteredClients.length}
+            itemLabel="Clients"
+            onPageChange={setActivePage}
+          />
         </div>
 
         {archivedClients.length > 0 && (
@@ -479,7 +503,7 @@ export default function ClientsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {archivedClients.map((c) => (
+                    {paginatedArchived.map((c) => (
                       <tr
                         key={c.id}
                         className="border-b border-border last:border-b-0"
@@ -521,6 +545,13 @@ export default function ClientsPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                page={archivedPage}
+                totalPages={Math.ceil(archivedClients.length / PAGE_SIZE)}
+                total={archivedClients.length}
+                itemLabel="Archived Clients"
+                onPageChange={setArchivedPage}
+              />
             </div>
           </div>
         )}
