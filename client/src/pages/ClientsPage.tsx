@@ -54,6 +54,7 @@ export default function ClientsPage() {
   const [emailWarning, setEmailWarning] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [archivedPage, setArchivedPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const menu = usePortalMenu();
   const inlineEdit = useInlineEdit({
     onSave: async (id, values) => {
@@ -165,16 +166,15 @@ export default function ClientsPage() {
   const activeClients = clients.filter((c) => c.status !== "archived");
   const archivedClients = clients.filter((c) => c.status === "archived");
 
-  const filteredClients = search.trim()
-    ? activeClients.filter((c) => {
-        const q = search.toLowerCase();
-        return (
-          c.name.toLowerCase().includes(q) ||
-          (c.email ?? "").toLowerCase().includes(q) ||
-          (c.company ?? "").toLowerCase().includes(q)
-        );
-      })
-    : activeClients;
+  const filteredClients = activeClients.filter((c) => {
+    const matchesSearch =
+      !search.trim() ||
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.company ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const paginatedActive = filteredClients.slice(
     (activePage - 1) * PAGE_SIZE,
@@ -214,25 +214,54 @@ export default function ClientsPage() {
               setIsAddModalOpen(true);
             }}
             title={`Add Client (${shortcutLabel})`}
-            className="group relative inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+            className="group relative inline-flex cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
           >
             <span className="text-base leading-none">+</span>
             Add Client
-            <span className="pointer-events-none ml-1 invisible rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground group-hover:visible">
+            <span className="pointer-events-none ml-1 rounded border border-blue-400 bg-blue-500 px-1.5 py-0.5 font-mono text-xs text-blue-100">
               {shortcutLabel}
             </span>
           </button>
         </div>
 
-        <div className="mb-4">
-          <SearchBar
-            value={search}
-            onChange={(v) => {
-              setSearch(v);
-              setActivePage(1);
-            }}
-            placeholder="Search by name, email or company…"
-          />
+        <div className="mb-5 flex items-center gap-2">
+          <div className="flex-1">
+            <SearchBar
+              value={search}
+              onChange={(v) => {
+                setSearch(v);
+                setActivePage(1);
+              }}
+              placeholder="Search by name, email or company…"
+            />
+          </div>
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setActivePage(1);
+              }}
+              className="appearance-none rounded-lg border border-border bg-card py-2 pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="all">All statuses</option>
+              <option value="lead">Lead</option>
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </span>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -557,7 +586,12 @@ export default function ClientsPage() {
         )}
 
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeAddModal();
+            }}
+          >
             <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-xl">
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <h2 className="text-lg font-semibold cursor-pointer">

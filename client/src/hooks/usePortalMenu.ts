@@ -10,11 +10,22 @@ export function usePortalMenu() {
 
   useEffect(() => {
     if (!openKey) return;
+
+    function updatePos() {
+      const rect = refs.current[openKey!]?.getBoundingClientRect();
+      if (rect) setPos({ top: rect.bottom + 4, left: rect.left });
+    }
+
     function handleOutside() {
       setOpenKey(null);
     }
+
     document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
+    window.addEventListener("scroll", updatePos, true);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("scroll", updatePos, true);
+    };
   }, [openKey]);
 
   function toggle(key: string) {
