@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import MaintenancePage from "@/pages/MaintenancePage";
+import ClientsPage from "@/pages/ClientsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -50,6 +51,12 @@ function DashboardPlaceholder() {
       <p className="text-muted-foreground">
         Welcome, {user?.first_name} {user?.last_name}!
       </p>
+      <Link
+        to="/clients"
+        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+      >
+        Clients
+      </Link>
       <button
         onClick={logout}
         className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
@@ -131,6 +138,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DashboardPlaceholder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients"
+          element={
+            <ProtectedRoute>
+              <ClientsPage />
             </ProtectedRoute>
           }
         />

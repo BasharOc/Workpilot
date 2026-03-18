@@ -18,5 +18,25 @@ model User {
   themePreference String   @default("light") @map("theme_preference")
   createdAt       DateTime @default(now()) @map("created_at")
 
+  clients Client[]
+
   @@map("users")
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  address   String?
+  notes     String?
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("clients")
 }
