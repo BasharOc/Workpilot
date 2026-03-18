@@ -38,6 +38,9 @@ interface Client {
 }
 
 export default function ClientsPage() {
+  const isMac =
+    typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
+  const shortcutLabel = isMac ? "⌥N" : "Alt+N";
   const [clients, setClients] = useState<Client[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -45,6 +48,7 @@ export default function ClientsPage() {
   const [company, setCompany] = useState("");
   const [, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [emailWarning, setEmailWarning] = useState(false);
   const menu = usePortalMenu();
   const inlineEdit = useInlineEdit({
     onSave: async (id, values) => {
@@ -71,12 +75,25 @@ export default function ClientsPage() {
     fetchClients();
   }, []);
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.altKey && e.code === "KeyN") {
+        e.preventDefault();
+        setError("");
+        setIsAddModalOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isMac]);
+
   function closeAddModal() {
     setIsAddModalOpen(false);
     setName("");
     setEmail("");
     setCompany("");
     setError("");
+    setEmailWarning(false);
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -182,10 +199,14 @@ export default function ClientsPage() {
               setError("");
               setIsAddModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+            title={`Add Client (${shortcutLabel})`}
+            className="group relative inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
           >
             <span className="text-base leading-none">+</span>
             Add Client
+            <span className="pointer-events-none ml-1 invisible rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground group-hover:visible">
+              {shortcutLabel}
+            </span>
           </button>
         </div>
 
@@ -523,6 +544,7 @@ export default function ClientsPage() {
 
               <form onSubmit={handleAdd} className="space-y-3 px-5 py-4">
                 <input
+                  autoFocus
                   placeholder="Name *"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -531,9 +553,31 @@ export default function ClientsPage() {
                 <input
                   placeholder="Email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-md border border-border px-3 py-2"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailWarning(false);
+                  }}
+                  onBlur={() => {
+                    if (
+                      email.trim() &&
+                      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+                    ) {
+                      setEmailWarning(true);
+                    } else {
+                      setEmailWarning(false);
+                    }
+                  }}
+                  className={`w-full rounded-md border px-3 py-2 ${
+                    emailWarning
+                      ? "border-amber-400 focus:outline-amber-400"
+                      : "border-border"
+                  }`}
                 />
+                {emailWarning && (
+                  <p className="-mt-1 text-xs text-amber-600">
+                    Are you sure this is a valid email address?
+                  </p>
+                )}
                 <input
                   placeholder="Company"
                   value={company}
@@ -545,13 +589,13 @@ export default function ClientsPage() {
                   <button
                     type="button"
                     onClick={closeAddModal}
-                    className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+                    className="cursor-pointer rounded-md border border-border px-3 py-2 text-sm font-medium transition hover:bg-muted hover:text-foreground"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+                    className="cursor-pointer rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
                   >
                     Create
                   </button>
