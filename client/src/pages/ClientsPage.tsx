@@ -111,6 +111,25 @@ export default function ClientsPage() {
     }
   }
 
+  async function handleArchive(id: string) {
+    try {
+      await api.put(`/clients/${id}`, { status: "archived" });
+      menu.close();
+      fetchClients();
+    } catch {
+      setError("Failed to archive client");
+    }
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      await api.put(`/clients/${id}`, { status: "inactive" });
+      fetchClients();
+    } catch {
+      setError("Failed to restore client");
+    }
+  }
+
   async function handleStatusChange(id: string, newStatus: string) {
     try {
       await api.put(`/clients/${id}`, { status: newStatus });
@@ -121,8 +140,11 @@ export default function ClientsPage() {
     }
   }
 
+  const activeClients = clients.filter((c) => c.status !== "archived");
+  const archivedClients = clients.filter((c) => c.status === "archived");
+
   const filteredClients = search.trim()
-    ? clients.filter((c) => {
+    ? activeClients.filter((c) => {
         const q = search.toLowerCase();
         return (
           c.name.toLowerCase().includes(q) ||
@@ -130,7 +152,7 @@ export default function ClientsPage() {
           (c.company ?? "").toLowerCase().includes(q)
         );
       })
-    : clients;
+    : activeClients;
 
   function getStatusClass(status: string) {
     if (status === "active")
@@ -322,7 +344,7 @@ export default function ClientsPage() {
                                   onClick={() =>
                                     void handleStatusChange(c.id, s)
                                   }
-                                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs capitalize transition hover:bg-muted ${
+                                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm capitalize transition hover:bg-muted ${
                                     c.status === s ? "font-semibold" : ""
                                   }`}
                                 >
@@ -365,22 +387,29 @@ export default function ClientsPage() {
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 24 24"
                               fill="currentColor"
-                              className="h-4 w-4"
+                              className="h-5 w-5"
                             >
-                              <circle cx="12" cy="5" r="1.5" />
-                              <circle cx="12" cy="12" r="1.5" />
-                              <circle cx="12" cy="19" r="1.5" />
+                              <circle cx="12" cy="5" r="2" />
+                              <circle cx="12" cy="12" r="2" />
+                              <circle cx="12" cy="19" r="2" />
                             </svg>
                           </button>
                           {menu.isOpen(`actions-${c.id}`) && (
                             <PortalMenu pos={menu.pos}>
                               <button
                                 type="button"
+                                onClick={() => void handleArchive(c.id)}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition hover:bg-muted"
+                              >
+                                Archive
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => {
                                   menu.close();
                                   void handleDelete(c.id);
                                 }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-600 transition hover:bg-muted"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 transition hover:bg-muted"
                               >
                                 Delete
                               </button>
@@ -395,6 +424,85 @@ export default function ClientsPage() {
             </table>
           </div>
         </div>
+
+        {archivedClients.length > 0 && (
+          <div className="mt-8">
+            <h2 className="mb-3 text-base font-semibold text-muted-foreground">
+              Archived ({archivedClients.length})
+            </h2>
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm opacity-70">
+              <div className="overflow-x-auto">
+                <table className="min-w-full table-fixed text-sm">
+                  <colgroup>
+                    <col className="w-[26%]" />
+                    <col className="w-[26%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[12%]" />
+                  </colgroup>
+                  <thead className="bg-muted/50">
+                    <tr className="border-b border-border">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Name
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Email
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Company
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {archivedClients.map((c) => (
+                      <tr
+                        key={c.id}
+                        className="border-b border-border last:border-b-0"
+                      >
+                        <td className="px-4 py-3 align-middle font-medium text-muted-foreground">
+                          {c.name}
+                        </td>
+                        <td className="px-4 py-3 align-middle text-muted-foreground">
+                          {c.email || "-"}
+                        </td>
+                        <td className="px-4 py-3 align-middle text-muted-foreground">
+                          {c.company || "-"}
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium capitalize text-red-700">
+                            archived
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => void handleRestore(c.id)}
+                              className="rounded px-2 py-1 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                            >
+                              Restore
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleDelete(c.id)}
+                              className="rounded px-2 py-1 text-xs text-red-500 transition hover:bg-muted"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         {isAddModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
