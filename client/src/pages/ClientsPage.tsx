@@ -401,13 +401,13 @@ export default function ClientsPage() {
                     setIsAddModalOpen(true);
                   }}
                   title={`Add Client (${formatAltShortcut("N")})`}
-                  className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-3 text-sm font-medium text-white transition hover:bg-blue-700"
+                  className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
                 >
                   <span className="text-base leading-none">+</span>
                   Add Client
-                  <span className="pointer-events-none ml-1 rounded border border-blue-400 bg-blue-500 px-1.5 py-0.5 font-mono text-xs text-blue-100">
+                  <kbd className="rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-xs">
                     {formatAltShortcut("N")}
-                  </span>
+                  </kbd>
                 </button>
               </div>
             </>
