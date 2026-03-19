@@ -9,7 +9,6 @@ import {
   Sun,
   Moon,
   Menu,
-  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -34,7 +33,7 @@ function SidebarContent({
   onLinkClick?: () => void;
   onToggleCollapse?: () => void;
 }) {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
 
   const itemClass = (isActive: boolean) =>
@@ -54,12 +53,14 @@ function SidebarContent({
           collapsed ? "justify-center px-0" : "gap-2.5 px-4"
         }`}
       >
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary">
-          <CheckSquare2 className="h-4 w-4 text-primary-foreground" />
-        </div>
+        <img
+          src="/workpilot_no_bg.png"
+          alt="Workpilot"
+          className="h-7 w-7 shrink-0 object-contain"
+        />
         {!collapsed && (
           <span className="text-sm font-semibold text-sidebar-foreground">
-            FreelanceFlow
+            Workpilot
           </span>
         )}
       </div>
@@ -102,28 +103,31 @@ function SidebarContent({
           {!collapsed && (theme === "dark" ? "Light mode" : "Dark mode")}
         </button>
 
-        {collapsed ? (
-          <button
-            onClick={() => void logout()}
-            title="Sign out"
-            className="flex w-full items-center justify-center rounded-md px-2 py-2 text-sidebar-foreground/50 transition hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        ) : (
-          <div className="flex items-center justify-between rounded-md px-3 py-2">
-            <span className="truncate text-sm text-sidebar-foreground/70">
-              {user?.first_name} {user?.last_name}
+        {/* Profile */}
+        <NavLink
+          to="/profile"
+          onClick={onLinkClick}
+          title={collapsed ? "Profil" : undefined}
+          className={({ isActive }) =>
+            `flex w-full items-center rounded-md py-2 text-sm transition-colors ${
+              collapsed ? "justify-center px-2" : "gap-3 px-3"
+            } ${
+              isActive
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+            }`
+          }
+        >
+          {/* Avatar circle with initials */}
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            {`${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase()}
+          </span>
+          {!collapsed && (
+            <span className="truncate">
+              {user?.firstName} {user?.lastName}
             </span>
-            <button
-              onClick={() => void logout()}
-              title="Sign out"
-              className="ml-2 shrink-0 text-sidebar-foreground/50 transition hover:text-sidebar-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+          )}
+        </NavLink>
 
         {onToggleCollapse && (
           <button
@@ -194,7 +198,7 @@ export default function AppLayout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-semibold">FreelanceFlow</span>
+          <span className="text-sm font-semibold">Workpilot</span>
         </header>
 
         <main className="flex-1 overflow-y-auto">
