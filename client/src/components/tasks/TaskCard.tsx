@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Trash2, Calendar, Play, Square } from "lucide-react";
+import {
+  GripVertical,
+  Pencil,
+  Trash2,
+  Calendar,
+  Play,
+  Square,
+} from "lucide-react";
 import type { Task } from "@/types/task";
 import { PRIORITY_LABELS, PRIORITY_STYLES } from "@/types/task";
 import type { TimeEntry } from "@/types/time-entry";

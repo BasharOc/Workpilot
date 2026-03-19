@@ -153,7 +153,9 @@ export default function TaskListView({
                         {activeTimers[task.id] ? (
                           <>
                             <Square className="h-3 w-3" />
-                            <LiveTimer startedAt={activeTimers[task.id].startedAt} />
+                            <LiveTimer
+                              startedAt={activeTimers[task.id].startedAt}
+                            />
                           </>
                         ) : (
                           <Play className="h-3 w-3" />

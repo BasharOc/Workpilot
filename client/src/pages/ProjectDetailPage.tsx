@@ -236,9 +236,7 @@ export default function ProjectDetailPage() {
       const { data } = await api.patch<TimeEntry>(
         `/time-entries/${entryId}/stop`,
       );
-      setTimeEntries((prev) =>
-        prev.map((e) => (e.id === entryId ? data : e)),
-      );
+      setTimeEntries((prev) => prev.map((e) => (e.id === entryId ? data : e)));
     } catch {
       // ignore
     }
@@ -526,9 +524,11 @@ export default function ProjectDetailPage() {
                       Tracked time
                     </dt>
                     <dd className="text-sm font-medium">
-                      {totalTrackedSeconds > 0
-                        ? formatDuration(totalTrackedSeconds)
-                        : <span className="text-muted-foreground">—</span>}
+                      {totalTrackedSeconds > 0 ? (
+                        formatDuration(totalTrackedSeconds)
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </dd>
                   </div>
                 </dl>

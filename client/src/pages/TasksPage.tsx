@@ -164,9 +164,7 @@ export default function TasksPage() {
       const { data } = await api.patch<TimeEntry>(
         `/time-entries/${entryId}/stop`,
       );
-      setTimeEntries((prev) =>
-        prev.map((e) => (e.id === entryId ? data : e)),
-      );
+      setTimeEntries((prev) => prev.map((e) => (e.id === entryId ? data : e)));
     } catch {
       // ignore
     }
