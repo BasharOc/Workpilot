@@ -10,6 +10,7 @@ import projectsRoutes from "./routes/projects.routes.js";
 import tasksRoutes from "./routes/tasks.routes.js";
 import timeEntriesRoutes from "./routes/time-entries.routes.js";
 import invoicesRoutes from "./routes/invoices.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use("/api/projects", projectsRoutes);
 app.use("/api/tasks", tasksRoutes);
 app.use("/api/time-entries", timeEntriesRoutes);
 app.use("/api/invoices", invoicesRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

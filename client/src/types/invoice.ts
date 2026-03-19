@@ -33,10 +33,10 @@ export const STATUS_LABELS: Record<Invoice["status"], string> = {
 };
 
 export const STATUS_STYLES: Record<Invoice["status"], string> = {
-  draft: "bg-zinc-100 text-zinc-600 border-zinc-200",
-  sent: "bg-blue-50 text-blue-700 border-blue-200",
-  paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  cancelled: "bg-red-50 text-red-600 border-red-200",
+  draft: "bg-zinc-100    text-zinc-600  border-zinc-200",
+  sent: "bg-blue-50     text-blue-700  border-blue-200",
+  paid: "bg-emerald-50  text-emerald-700 border-emerald-200",
+  cancelled: "bg-red-50      text-red-600   border-red-200",
 };
 
 export const CURRENCY_SYMBOLS: Record<Invoice["currency"], string> = {

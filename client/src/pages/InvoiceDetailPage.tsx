@@ -95,37 +95,33 @@ export default function InvoiceDetailPage() {
             </Link>
 
             <div className="flex items-center gap-2">
-              {/* Status actions */}
-              {invoice.status === "draft" && (
-                <button
-                  type="button"
+              {/* Status selector */}
+              <div className="relative">
+                <select
+                  value={invoice.status}
                   disabled={isUpdating}
-                  onClick={() => void handleStatusChange("sent")}
-                  className="h-9 rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+                  onChange={(e) =>
+                    void handleStatusChange(e.target.value as Invoice["status"])
+                  }
+                  className="h-9 appearance-none rounded-md border border-border bg-card pl-3 pr-8 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
                 >
-                  Mark as Sent
-                </button>
-              )}
-              {invoice.status === "sent" && (
-                <button
-                  type="button"
-                  disabled={isUpdating}
-                  onClick={() => void handleStatusChange("paid")}
-                  className="h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                >
-                  Mark as Paid
-                </button>
-              )}
-              {(invoice.status === "sent" || invoice.status === "draft") && (
-                <button
-                  type="button"
-                  disabled={isUpdating}
-                  onClick={() => void handleStatusChange("cancelled")}
-                  className="h-9 rounded-md border border-border px-4 text-sm font-medium transition hover:bg-muted disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-              )}
+                  <option value="draft">Draft</option>
+                  <option value="sent">Sent</option>
+                  <option value="paid">Paid</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </span>
+              </div>
 
               {/* Print */}
               <button

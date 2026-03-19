@@ -11,6 +11,7 @@ import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import TasksPage from "@/pages/TasksPage";
 import InvoicesPage from "@/pages/InvoicesPage";
 import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
+import DashboardPage from "@/pages/DashboardPage";
 import AppLayout from "@/layouts/AppLayout";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -47,18 +48,6 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-}
-
-function DashboardPage() {
-  const { user } = useAuthStore();
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 py-20">
-      <h1 className="text-3xl font-bold text-primary">FreelanceFlow</h1>
-      <p className="text-muted-foreground">
-        Welcome, {user?.first_name} {user?.last_name}!
-      </p>
-    </div>
-  );
 }
 
 export default function App() {
