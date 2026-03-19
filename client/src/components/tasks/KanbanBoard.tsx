@@ -18,6 +18,7 @@ import {
 import api from "@/api/axios";
 import type { Task } from "@/types/task";
 import { TASK_STATUSES, STATUS_LABELS } from "@/types/task";
+import type { TimeEntry } from "@/types/time-entry";
 import TaskCard from "./TaskCard";
 
 // ── Column droppable ──────────────────────────────────────────────────────────
@@ -28,12 +29,18 @@ function KanbanColumn({
   tasks,
   onEdit,
   onDelete,
+  activeTimers = {},
+  onTimerStart,
+  onTimerStop,
 }: {
   colId: Task["status"];
   label: string;
   tasks: Task[];
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  activeTimers?: Record<string, TimeEntry>;
+  onTimerStart?: (taskId: string) => void;
+  onTimerStop?: (entryId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: colId });
 
@@ -64,6 +71,9 @@ function KanbanColumn({
               task={task}
               onEdit={onEdit}
               onDelete={onDelete}
+              activeTimer={activeTimers[task.id]}
+              onTimerStart={onTimerStart}
+              onTimerStop={onTimerStop}
             />
           ))}
           {tasks.length === 0 && (
@@ -84,6 +94,9 @@ interface Props {
   onTasksChange: (tasks: Task[]) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  activeTimers?: Record<string, TimeEntry>;
+  onTimerStart?: (taskId: string) => void;
+  onTimerStop?: (entryId: string) => void;
 }
 
 const COLUMNS = TASK_STATUSES.map((id) => ({
@@ -96,6 +109,9 @@ export default function KanbanBoard({
   onTasksChange,
   onEdit,
   onDelete,
+  activeTimers = {},
+  onTimerStart,
+  onTimerStop,
 }: Props) {
   const [localTasks, setLocalTasks] = useState<Task[]>([...tasks]);
   const [snapshotTasks, setSnapshotTasks] = useState<Task[]>([]);
@@ -222,6 +238,9 @@ export default function KanbanBoard({
             tasks={getColumnTasks(col.id)}
             onEdit={onEdit}
             onDelete={onDelete}
+            activeTimers={activeTimers}
+            onTimerStart={onTimerStart}
+            onTimerStop={onTimerStop}
           />
         ))}
       </div>

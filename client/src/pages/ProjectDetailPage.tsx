@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { LayoutGrid, List, Plus } from "lucide-react";
 import api from "@/api/axios";
 import type { Task } from "@/types/task";
+import type { TimeEntry } from "@/types/time-entry";
+import { formatDuration } from "@/types/time-entry";
 import KanbanBoard from "@/components/tasks/KanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import TaskModal from "@/components/tasks/TaskModal";
@@ -84,15 +86,20 @@ export default function ProjectDetailPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
+  // Time tracking state
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+
   useEffect(() => {
     async function fetchProject() {
       try {
-        const [projectRes, tasksRes] = await Promise.all([
+        const [projectRes, tasksRes, timeRes] = await Promise.all([
           api.get(`/projects/${id}`),
           api.get(`/projects/${id}/tasks`),
+          api.get<TimeEntry[]>(`/projects/${id}/time-entries`),
         ]);
         setProject(projectRes.data as Project);
         setTasks(tasksRes.data as Task[]);
+        setTimeEntries(timeRes.data);
       } catch {
         setError("Project not found");
       } finally {
@@ -190,6 +197,50 @@ export default function ProjectDetailPage() {
       // Re-fetch to restore on error
       const { data } = await api.get(`/projects/${id}/tasks`);
       setTasks(data as Task[]);
+    }
+  }
+
+  const activeTimers: Record<string, TimeEntry> = {};
+  for (const entry of timeEntries) {
+    if (!entry.endedAt) activeTimers[entry.taskId] = entry;
+  }
+
+  const totalTrackedSeconds = timeEntries.reduce((sum, e) => {
+    if (e.durationSeconds != null) return sum + e.durationSeconds;
+    if (!e.endedAt)
+      return (
+        sum + Math.floor((Date.now() - new Date(e.startedAt).getTime()) / 1000)
+      );
+    return sum;
+  }, 0);
+
+  async function handleTimerStart(taskId: string) {
+    try {
+      const { data } = await api.post<TimeEntry>("/time-entries", { taskId });
+      setTimeEntries((prev) => {
+        // Stop existing active entry for this task in local state
+        const filtered = prev.map((e) =>
+          e.taskId === taskId && !e.endedAt
+            ? { ...e, endedAt: new Date().toISOString(), durationSeconds: 0 }
+            : e,
+        );
+        return [...filtered, data];
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleTimerStop(entryId: string) {
+    try {
+      const { data } = await api.patch<TimeEntry>(
+        `/time-entries/${entryId}/stop`,
+      );
+      setTimeEntries((prev) =>
+        prev.map((e) => (e.id === entryId ? data : e)),
+      );
+    } catch {
+      // ignore
     }
   }
 
@@ -469,13 +520,15 @@ export default function ProjectDetailPage() {
                     </dd>
                   </div>
 
-                  {/* Tracked time placeholder */}
+                  {/* Tracked time */}
                   <div className="px-5 py-3">
                     <dt className="mb-1 text-xs font-medium text-muted-foreground">
                       Tracked time
                     </dt>
-                    <dd className="text-sm text-muted-foreground">
-                      — (Phase 6)
+                    <dd className="text-sm font-medium">
+                      {totalTrackedSeconds > 0
+                        ? formatDuration(totalTrackedSeconds)
+                        : <span className="text-muted-foreground">—</span>}
                     </dd>
                   </div>
                 </dl>
@@ -575,12 +628,18 @@ export default function ProjectDetailPage() {
                   onTasksChange={setTasks}
                   onEdit={openEditTask}
                   onDelete={(taskId) => void handleDeleteTask(taskId)}
+                  activeTimers={activeTimers}
+                  onTimerStart={(taskId) => void handleTimerStart(taskId)}
+                  onTimerStop={(entryId) => void handleTimerStop(entryId)}
                 />
               ) : (
                 <TaskListView
                   tasks={tasks}
                   onEdit={openEditTask}
                   onDelete={(taskId) => void handleDeleteTask(taskId)}
+                  activeTimers={activeTimers}
+                  onTimerStart={(taskId) => void handleTimerStart(taskId)}
+                  onTimerStop={(entryId) => void handleTimerStop(entryId)}
                 />
               )}
             </div>

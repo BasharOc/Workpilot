@@ -1,16 +1,46 @@
+import { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Trash2, Calendar } from "lucide-react";
+import { GripVertical, Pencil, Trash2, Calendar, Play, Square } from "lucide-react";
 import type { Task } from "@/types/task";
 import { PRIORITY_LABELS, PRIORITY_STYLES } from "@/types/task";
+import type { TimeEntry } from "@/types/time-entry";
+import { formatDuration } from "@/types/time-entry";
 
 interface Props {
   task: Task;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  activeTimer?: TimeEntry | null;
+  onTimerStart?: (taskId: string) => void;
+  onTimerStop?: (entryId: string) => void;
 }
 
-export default function TaskCard({ task, onEdit, onDelete }: Props) {
+function LiveTimer({ startedAt }: { startedAt: string }) {
+  const [elapsed, setElapsed] = useState(() =>
+    Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
+  );
+  useEffect(() => {
+    const id = setInterval(
+      () =>
+        setElapsed(
+          Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
+        ),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [startedAt]);
+  return <span>{formatDuration(elapsed)}</span>;
+}
+
+export default function TaskCard({
+  task,
+  onEdit,
+  onDelete,
+  activeTimer,
+  onTimerStart,
+  onTimerStop,
+}: Props) {
   const {
     attributes,
     listeners,
@@ -79,6 +109,35 @@ export default function TaskCard({ task, onEdit, onDelete }: Props) {
                   month: "short",
                 })}
               </span>
+            )}
+
+            {/* Timer */}
+            {onTimerStart && onTimerStop && (
+              <button
+                type="button"
+                onClick={() =>
+                  activeTimer
+                    ? onTimerStop(activeTimer.id)
+                    : onTimerStart(task.id)
+                }
+                className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium transition ${
+                  activeTimer
+                    ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/40 dark:text-red-400"
+                    : "border-border bg-muted text-muted-foreground hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                }`}
+              >
+                {activeTimer ? (
+                  <>
+                    <Square className="h-3 w-3" />
+                    <LiveTimer startedAt={activeTimer.startedAt} />
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-3 w-3" />
+                    Track
+                  </>
+                )}
+              </button>
             )}
           </div>
         </div>

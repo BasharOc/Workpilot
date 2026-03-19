@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Plus, LayoutGrid, List, ChevronDown } from "lucide-react";
 import api from "@/api/axios";
 import type { Task } from "@/types/task";
+import type { TimeEntry } from "@/types/time-entry";
 import KanbanBoard from "@/components/tasks/KanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import TaskModal from "@/components/tasks/TaskModal";
@@ -35,6 +36,8 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
 
   const [searchParams] = useSearchParams();
 
@@ -79,10 +82,18 @@ export default function TasksPage() {
       return;
     }
     setIsLoadingTasks(true);
-    api
-      .get<Task[]>(`/projects/${selectedProjectId}/tasks`)
-      .then(({ data }) => setTasks(data))
-      .catch(() => setTasks([]))
+    Promise.all([
+      api.get<Task[]>(`/projects/${selectedProjectId}/tasks`),
+      api.get<TimeEntry[]>(`/projects/${selectedProjectId}/time-entries`),
+    ])
+      .then(([tasksRes, timeRes]) => {
+        setTasks(tasksRes.data);
+        setTimeEntries(timeRes.data);
+      })
+      .catch(() => {
+        setTasks([]);
+        setTimeEntries([]);
+      })
       .finally(() => setIsLoadingTasks(false));
   }, [selectedProjectId]);
 
@@ -124,6 +135,40 @@ export default function TasksPage() {
         );
         setTasks(data);
       }
+    }
+  }
+
+  const activeTimers: Record<string, TimeEntry> = {};
+  for (const entry of timeEntries) {
+    if (!entry.endedAt) activeTimers[entry.taskId] = entry;
+  }
+
+  async function handleTimerStart(taskId: string) {
+    try {
+      const { data } = await api.post<TimeEntry>("/time-entries", { taskId });
+      setTimeEntries((prev) => {
+        const filtered = prev.map((e) =>
+          e.taskId === taskId && !e.endedAt
+            ? { ...e, endedAt: new Date().toISOString(), durationSeconds: 0 }
+            : e,
+        );
+        return [...filtered, data];
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleTimerStop(entryId: string) {
+    try {
+      const { data } = await api.patch<TimeEntry>(
+        `/time-entries/${entryId}/stop`,
+      );
+      setTimeEntries((prev) =>
+        prev.map((e) => (e.id === entryId ? data : e)),
+      );
+    } catch {
+      // ignore
     }
   }
 
@@ -262,12 +307,18 @@ export default function TasksPage() {
                         onTasksChange={setTasks}
                         onEdit={openEditTask}
                         onDelete={(id) => void handleDeleteTask(id)}
+                        activeTimers={activeTimers}
+                        onTimerStart={(taskId) => void handleTimerStart(taskId)}
+                        onTimerStop={(entryId) => void handleTimerStop(entryId)}
                       />
                     ) : (
                       <TaskListView
                         tasks={tasks}
                         onEdit={openEditTask}
                         onDelete={(id) => void handleDeleteTask(id)}
+                        activeTimers={activeTimers}
+                        onTimerStart={(taskId) => void handleTimerStart(taskId)}
+                        onTimerStop={(entryId) => void handleTimerStop(entryId)}
                       />
                     )}
                   </div>

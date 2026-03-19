@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "@/api/axios";
 import { SearchBar } from "@/components/SearchBar";
 import { Pagination } from "@/components/Pagination";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { formatAltShortcut } from "@/utils/shortcuts";
 
 interface Client {
   id: string;
@@ -97,28 +99,22 @@ export default function ProjectsPage() {
     void init();
   }, []);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.altKey && e.code === "KeyN") {
-        e.preventDefault();
-        setAddTitle("");
-        setAddDescription("");
-        setAddClientId(clients[0]?.id ?? "");
-        setAddStatus("planned");
-        setAddDeadline("");
-        setAddBudget("");
-        setAddError("");
-        setIsAddOpen(true);
-      }
-      if (e.altKey && e.code === "KeyF") {
-        e.preventDefault();
+  useGlobalShortcuts([
+    {
+      code: "KeyN",
+      altKey: true,
+      enabled: !isAddOpen,
+      handler: openAddModal,
+    },
+    {
+      code: "KeyF",
+      altKey: true,
+      handler: () => {
         searchRef.current?.focus();
         searchRef.current?.select();
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [clients]);
+      },
+    },
+  ]);
 
   function openAddModal() {
     setAddTitle("");
@@ -167,10 +163,6 @@ export default function ProjectsPage() {
     }
   }
 
-  const isMac =
-    typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
-  const shortcutLabel = isMac ? "⌥N" : "Alt+N";
-
   const filtered = projects.filter((p) => {
     const matchSearch =
       !search.trim() ||
@@ -196,13 +188,13 @@ export default function ProjectsPage() {
           <button
             type="button"
             onClick={openAddModal}
-            title={`Add Project (${shortcutLabel})`}
+            title={`Add Project (${formatAltShortcut("N")})`}
             className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
           >
             <span className="text-base leading-none">+</span>
             Add Project
             <kbd className="rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-xs">
-              {shortcutLabel}
+              {formatAltShortcut("N")}
             </kbd>
           </button>
         </div>

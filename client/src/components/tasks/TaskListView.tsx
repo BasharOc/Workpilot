@@ -1,6 +1,26 @@
-import { Pencil, Trash2, Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Pencil, Trash2, Calendar, Play, Square } from "lucide-react";
 import type { Task } from "@/types/task";
 import { STATUS_LABELS, PRIORITY_LABELS, PRIORITY_STYLES } from "@/types/task";
+import type { TimeEntry } from "@/types/time-entry";
+import { formatDuration } from "@/types/time-entry";
+
+function LiveTimer({ startedAt }: { startedAt: string }) {
+  const [elapsed, setElapsed] = useState(() =>
+    Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
+  );
+  useEffect(() => {
+    const id = setInterval(
+      () =>
+        setElapsed(
+          Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
+        ),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [startedAt]);
+  return <span>{formatDuration(elapsed)}</span>;
+}
 
 const STATUS_STYLES: Record<Task["status"], string> = {
   todo: "bg-zinc-100 text-zinc-600 border-zinc-200",
@@ -13,9 +33,19 @@ interface Props {
   tasks: Task[];
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  activeTimers?: Record<string, TimeEntry>;
+  onTimerStart?: (taskId: string) => void;
+  onTimerStop?: (entryId: string) => void;
 }
 
-export default function TaskListView({ tasks, onEdit, onDelete }: Props) {
+export default function TaskListView({
+  tasks,
+  onEdit,
+  onDelete,
+  activeTimers = {},
+  onTimerStart,
+  onTimerStop,
+}: Props) {
   if (tasks.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -40,6 +70,9 @@ export default function TaskListView({ tasks, onEdit, onDelete }: Props) {
             </th>
             <th className="hidden px-4 py-3 font-semibold text-muted-foreground lg:table-cell">
               Due date
+            </th>
+            <th className="hidden px-4 py-3 text-center font-semibold text-muted-foreground xl:table-cell">
+              Time
             </th>
             <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
               Actions
@@ -101,6 +134,32 @@ export default function TaskListView({ tasks, onEdit, onDelete }: Props) {
 
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">
+                    {onTimerStart && onTimerStop && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const active = activeTimers[task.id];
+                          active
+                            ? onTimerStop(active.id)
+                            : onTimerStart(task.id);
+                        }}
+                        className={`inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium transition ${
+                          activeTimers[task.id]
+                            ? "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400"
+                            : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                        }`}
+                        aria-label="Toggle timer"
+                      >
+                        {activeTimers[task.id] ? (
+                          <>
+                            <Square className="h-3 w-3" />
+                            <LiveTimer startedAt={activeTimers[task.id].startedAt} />
+                          </>
+                        ) : (
+                          <Play className="h-3 w-3" />
+                        )}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => onEdit(task)}
