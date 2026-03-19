@@ -65,6 +65,11 @@
   * {
     @apply border-border;
   }
+  button,
+  [role="button"],
+  a {
+    cursor: pointer;
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     margin: 0;

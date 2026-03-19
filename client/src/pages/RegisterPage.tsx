@@ -44,8 +44,15 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
+          <div className="mb-3 flex justify-center">
+            <img
+              src="/workpilot_no_bg.png"
+              alt="Workpilot"
+              className="h-12 w-12 object-contain"
+            />
+          </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            FreelanceFlow
+            Workpilot
           </h1>
           <p className="mt-2 text-muted-foreground">Create your account</p>
         </div>
@@ -59,7 +66,10 @@ export default function RegisterPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="firstName" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="firstName"
+                className="text-sm font-medium text-foreground"
+              >
                 First name
               </label>
               <input
@@ -71,12 +81,17 @@ export default function RegisterPage() {
                 placeholder="Max"
               />
               {errors.firstName && (
-                <p className="text-sm text-destructive">{errors.firstName.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.firstName.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="lastName" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="lastName"
+                className="text-sm font-medium text-foreground"
+              >
                 Last name
               </label>
               <input
@@ -88,13 +103,18 @@ export default function RegisterPage() {
                 placeholder="Mustermann"
               />
               {errors.lastName && (
-                <p className="text-sm text-destructive">{errors.lastName.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.lastName.message}
+                </p>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="email"
+              className="text-sm font-medium text-foreground"
+            >
               Email
             </label>
             <input
@@ -111,7 +131,10 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-foreground"
+            >
               Password
             </label>
             <div className="relative">
@@ -132,7 +155,9 @@ export default function RegisterPage() {
               </button>
             </div>
             {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
@@ -154,7 +179,10 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-primary hover:underline">
+          <Link
+            to="/login"
+            className="font-medium text-primary hover:underline"
+          >
             Sign in
           </Link>
         </p>

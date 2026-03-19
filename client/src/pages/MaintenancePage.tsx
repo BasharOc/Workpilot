@@ -17,13 +17,7 @@ export default function MaintenancePage() {
           Gerade läuft eine kurze Wartung. Bitte versuch es in ein paar Minuten
           erneut.
         </p>
-
-        <div className="mt-6 rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-          Tipp: Wenn du den Server gerade gestoppt hast (Ctrl+C), starte ihn
-          wieder mit <span className="font-medium">server → npm run dev</span>.
-        </div>
       </div>
     </div>
   );
 }
-

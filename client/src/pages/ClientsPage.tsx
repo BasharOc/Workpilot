@@ -15,12 +15,12 @@ function PortalMenu({
   pos,
   children,
 }: {
-  pos: { top: number; left: number };
+  pos: { top: number; right: number };
   children: React.ReactNode;
 }) {
   return createPortal(
     <div
-      style={{ top: pos.top, left: pos.left }}
+      style={{ top: pos.top, right: pos.right }}
       onMouseDown={(e) => e.stopPropagation()}
       className="fixed z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-card shadow-lg"
     >

@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 export function usePortalMenu() {
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const [pos, setPos] = useState<{ top: number; left: number }>({
-    top: 0,
-    left: 0,
-  });
+  const [pos, setPos] = useState<{ top: number; right: number }>(
+    { top: 0, right: 0 },
+  );
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
@@ -13,7 +12,8 @@ export function usePortalMenu() {
 
     function updatePos() {
       const rect = refs.current[openKey!]?.getBoundingClientRect();
-      if (rect) setPos({ top: rect.bottom + 4, left: rect.left });
+      if (rect)
+        setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
     }
 
     function handleOutside() {
@@ -34,7 +34,8 @@ export function usePortalMenu() {
       return;
     }
     const rect = refs.current[key]?.getBoundingClientRect();
-    if (rect) setPos({ top: rect.bottom + 4, left: rect.left });
+    if (rect)
+      setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
     setOpenKey(key);
   }
 

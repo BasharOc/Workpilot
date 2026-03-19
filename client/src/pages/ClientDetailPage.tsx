@@ -342,7 +342,7 @@ export default function ClientDetailPage() {
         </div>
 
         {/* Projects */}
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="mb-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Projects ({projects.length})

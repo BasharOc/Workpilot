@@ -42,8 +42,15 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
+          <div className="mb-3 flex justify-center">
+            <img
+              src="/workpilot_no_bg.png"
+              alt="Workpilot"
+              className="h-12 w-12 object-contain"
+            />
+          </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            FreelanceFlow
+            Workpilot
           </h1>
           <p className="mt-2 text-muted-foreground">Sign in to your account</p>
         </div>
