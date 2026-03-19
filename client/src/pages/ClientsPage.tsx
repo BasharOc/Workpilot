@@ -345,7 +345,7 @@ export default function ClientsPage() {
           />
         </div>
 
-        <div className="mb-3 flex h-9 items-center justify-between">
+        <div className="mb-3 flex h-9 items-center justify-end">
           {selectedIds.size > 0 ? (
             <>
               <span className="text-sm font-medium">
