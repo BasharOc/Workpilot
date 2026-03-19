@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { LayoutGrid, List, Plus } from "lucide-react";
 import api from "@/api/axios";
+import type { Task } from "@/types/task";
+import KanbanBoard from "@/components/tasks/KanbanBoard";
+import TaskListView from "@/components/tasks/TaskListView";
+import TaskModal from "@/components/tasks/TaskModal";
 
 interface Project {
   id: string;
@@ -71,11 +76,21 @@ export default function ProjectDetailPage() {
     budget: "",
   });
 
+  // Tasks state
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
   useEffect(() => {
     async function fetchProject() {
       try {
-        const { data } = await api.get(`/projects/${id}`);
-        setProject(data);
+        const [projectRes, tasksRes] = await Promise.all([
+          api.get(`/projects/${id}`),
+          api.get(`/projects/${id}/tasks`),
+        ]);
+        setProject(projectRes.data as Project);
+        setTasks(tasksRes.data as Task[]);
       } catch {
         setError("Project not found");
       } finally {
@@ -131,6 +146,38 @@ export default function ProjectDetailPage() {
     }
   }
 
+  function openAddTask() {
+    setEditingTask(null);
+    setModalOpen(true);
+  }
+
+  function openEditTask(task: Task) {
+    setEditingTask(task);
+    setModalOpen(true);
+  }
+
+  function handleTaskSaved(saved: Task) {
+    setTasks((prev) => {
+      const exists = prev.find((t) => t.id === saved.id);
+      return exists
+        ? prev.map((t) => (t.id === saved.id ? saved : t))
+        : [...prev, saved];
+    });
+    setModalOpen(false);
+    setEditingTask(null);
+  }
+
+  async function handleDeleteTask(taskId: string) {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    try {
+      await api.delete(`/tasks/${taskId}`);
+    } catch {
+      // Re-fetch to restore on error
+      const { data } = await api.get(`/projects/${id}/tasks`);
+      setTasks(data as Task[]);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -151,323 +198,405 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="w-full px-4 py-6 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-4xl">
-        {/* Breadcrumb */}
-        <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/projects" className="transition hover:text-foreground">
-            Projects
-          </Link>
-          <span>/</span>
-          <Link
-            to={`/clients/${project.client.id}`}
-            className="transition hover:text-foreground"
-          >
-            {project.client.name}
-          </Link>
-          <span>/</span>
-          <span className="text-foreground">{project.title}</span>
-        </div>
+    <>
+      <div className="w-full px-4 py-6 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-6xl">
+          {/* Breadcrumb */}
+          <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+            <Link to="/projects" className="transition hover:text-foreground">
+              Projects
+            </Link>
+            <span>/</span>
+            <Link
+              to={`/clients/${project.client.id}`}
+              className="transition hover:text-foreground"
+            >
+              {project.client.name}
+            </Link>
+            <span>/</span>
+            <span className="text-foreground">{project.title}</span>
+          </div>
 
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold tracking-tight">
-              {project.title}
-            </h1>
-            <div className="mt-1.5 flex items-center gap-2">
-              <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getStatusClass(project.status)}`}
-              >
-                {getStatusLabel(project.status)}
-              </span>
+          {/* Header */}
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-semibold tracking-tight">
+                {project.title}
+              </h1>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getStatusClass(project.status)}`}
+                >
+                  {getStatusLabel(project.status)}
+                </span>
+                <Link
+                  to={`/clients/${project.client.id}`}
+                  className="text-sm text-muted-foreground transition hover:text-foreground hover:underline"
+                >
+                  {project.client.name}
+                </Link>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="inline-flex h-9 cursor-pointer items-center rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleSave()}
+                    disabled={isSaving}
+                    className="inline-flex h-9 cursor-pointer items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+                  >
+                    {isSaving ? "Saving…" : "Save changes"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted"
+                >
+                  Edit
+                </button>
+              )}
               <Link
-                to={`/clients/${project.client.id}`}
-                className="text-sm text-muted-foreground transition hover:text-foreground hover:underline"
+                to={`/tasks?projectId=${id}`}
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted"
               >
-                {project.client.name}
+                <LayoutGrid className="h-4 w-4" />
+                Tasks
               </Link>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {isEditing ? (
-              <>
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className="inline-flex h-9 cursor-pointer items-center rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={isSaving}
-                  className="inline-flex h-9 cursor-pointer items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
-                >
-                  {isSaving ? "Saving…" : "Save changes"}
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={startEdit}
-                className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted"
-              >
-                Edit
-              </button>
-            )}
-          </div>
-        </div>
 
-        {error && (
-          <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              {error}
+            </p>
+          )}
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {/* Linke Spalte: Hauptinfos */}
-          <div className="space-y-4 lg:col-span-2">
-            {/* Description */}
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <div className="border-b border-border px-5 py-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Description
-                </h2>
-              </div>
-              <div className="px-5 py-4">
-                {isEditing ? (
-                  <textarea
-                    rows={4}
-                    value={editValues.description}
-                    onChange={(e) =>
-                      setEditValues((p) => ({
-                        ...p,
-                        description: e.target.value,
-                      }))
-                    }
-                    placeholder="Describe the project…"
-                    className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                ) : project.description ? (
-                  <p className="whitespace-pre-wrap text-sm">
-                    {project.description}
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No description yet.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Progress */}
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <div className="border-b border-border px-5 py-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Progress
-                </h2>
-              </div>
-              <div className="px-5 py-4">
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Task completion</span>
-                  <span className="font-medium">0%</span>
+          {/* Top grid: Description + Details sidebar */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {/* Linke Spalte: Description */}
+            <div className="space-y-4 lg:col-span-2">
+              {/* Description */}
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                <div className="border-b border-border px-5 py-3">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Description
+                  </h2>
                 </div>
-                <ProgressBar percent={0} />
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Tasks werden in Phase 5 implementiert.
-                </p>
+                <div className="px-5 py-4">
+                  {isEditing ? (
+                    <textarea
+                      rows={4}
+                      value={editValues.description}
+                      onChange={(e) =>
+                        setEditValues((p) => ({
+                          ...p,
+                          description: e.target.value,
+                        }))
+                      }
+                      placeholder="Describe the project…"
+                      className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  ) : project.description ? (
+                    <p className="whitespace-pre-wrap text-sm">
+                      {project.description}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No description yet.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Tasks placeholder */}
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <div className="border-b border-border px-5 py-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Tasks
-                </h2>
-              </div>
-              <div className="px-5 py-10 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Kanban-Board & Task-Liste kommen in Phase 5.
-                </p>
-              </div>
-            </div>
-          </div>
+            {/* Rechte Spalte: Meta-Infos */}
+            <div className="space-y-4">
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                <div className="border-b border-border px-5 py-3">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Details
+                  </h2>
+                </div>
+                <dl className="divide-y divide-border">
+                  {/* Status */}
+                  <div className="px-5 py-3">
+                    <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                      Status
+                    </dt>
+                    <dd>
+                      {isEditing ? (
+                        <div className="relative">
+                          <select
+                            value={editValues.status}
+                            onChange={(e) =>
+                              setEditValues((p) => ({
+                                ...p,
+                                status: e.target.value,
+                              }))
+                            }
+                            className="w-full appearance-none rounded-md border border-border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            {STATUS_OPTIONS.map((s) => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusClass(project.status)}`}
+                        >
+                          {getStatusLabel(project.status)}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
 
-          {/* Rechte Spalte: Meta-Infos */}
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <div className="border-b border-border px-5 py-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Details
-                </h2>
-              </div>
-              <dl className="divide-y divide-border">
-                {/* Status */}
-                <div className="px-5 py-3">
-                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
-                    Status
-                  </dt>
-                  <dd>
-                    {isEditing ? (
-                      <div className="relative">
-                        <select
-                          value={editValues.status}
+                  {/* Deadline */}
+                  <div className="px-5 py-3">
+                    <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                      Deadline
+                    </dt>
+                    <dd>
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          value={editValues.deadline}
                           onChange={(e) =>
                             setEditValues((p) => ({
                               ...p,
-                              status: e.target.value,
+                              deadline: e.target.value,
                             }))
                           }
-                          className="w-full appearance-none rounded-md border border-border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          {STATUS_OPTIONS.map((s) => (
-                            <option key={s.value} value={s.value}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusClass(project.status)}`}
-                      >
-                        {getStatusLabel(project.status)}
-                      </span>
-                    )}
-                  </dd>
-                </div>
-
-                {/* Deadline */}
-                <div className="px-5 py-3">
-                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
-                    Deadline
-                  </dt>
-                  <dd>
-                    {isEditing ? (
-                      <input
-                        type="date"
-                        value={editValues.deadline}
-                        onChange={(e) =>
-                          setEditValues((p) => ({
-                            ...p,
-                            deadline: e.target.value,
-                          }))
-                        }
-                        className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
-                    ) : (
-                      <span className="text-sm">
-                        {project.deadline ? (
-                          new Date(project.deadline).toLocaleDateString(
-                            "de-DE",
-                            {
-                              day: "2-digit",
-                              month: "long",
-                              year: "numeric",
-                            },
-                          )
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </span>
-                    )}
-                  </dd>
-                </div>
-
-                {/* Budget */}
-                <div className="px-5 py-3">
-                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
-                    Budget
-                  </dt>
-                  <dd>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={editValues.budget}
-                        onChange={(e) =>
-                          setEditValues((p) => ({
-                            ...p,
-                            budget: e.target.value,
-                          }))
-                        }
-                        placeholder="0.00"
-                        className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
-                    ) : (
-                      <span className="text-sm">
-                        {project.budget != null ? (
-                          `€ ${parseFloat(project.budget).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </span>
-                    )}
-                  </dd>
-                </div>
-
-                {/* Title (nur im Edit-Modus) */}
-                {isEditing && (
-                  <div className="px-5 py-3">
-                    <dt className="mb-1 text-xs font-medium text-muted-foreground">
-                      Title
-                    </dt>
-                    <dd>
-                      <input
-                        type="text"
-                        value={editValues.title}
-                        onChange={(e) =>
-                          setEditValues((p) => ({
-                            ...p,
-                            title: e.target.value,
-                          }))
-                        }
-                        className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
+                          className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      ) : (
+                        <span className="text-sm">
+                          {project.deadline ? (
+                            new Date(project.deadline).toLocaleDateString(
+                              "de-DE",
+                              {
+                                day: "2-digit",
+                                month: "long",
+                                year: "numeric",
+                              },
+                            )
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </span>
+                      )}
                     </dd>
                   </div>
-                )}
 
-                {/* Client */}
-                <div className="px-5 py-3">
-                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
-                    Client
-                  </dt>
-                  <dd>
-                    <Link
-                      to={`/clients/${project.client.id}`}
-                      className="text-sm text-primary underline"
-                    >
-                      {project.client.name}
-                    </Link>
-                  </dd>
-                </div>
+                  {/* Budget */}
+                  <div className="px-5 py-3">
+                    <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                      Budget
+                    </dt>
+                    <dd>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={editValues.budget}
+                          onChange={(e) =>
+                            setEditValues((p) => ({
+                              ...p,
+                              budget: e.target.value,
+                            }))
+                          }
+                          placeholder="0.00"
+                          className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      ) : (
+                        <span className="text-sm">
+                          {project.budget != null ? (
+                            `€ ${parseFloat(project.budget).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
 
-                {/* Tracked time placeholder */}
-                <div className="px-5 py-3">
-                  <dt className="mb-1 text-xs font-medium text-muted-foreground">
-                    Tracked time
-                  </dt>
-                  <dd className="text-sm text-muted-foreground">— (Phase 6)</dd>
-                </div>
-              </dl>
+                  {/* Title (nur im Edit-Modus) */}
+                  {isEditing && (
+                    <div className="px-5 py-3">
+                      <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                        Title
+                      </dt>
+                      <dd>
+                        <input
+                          type="text"
+                          value={editValues.title}
+                          onChange={(e) =>
+                            setEditValues((p) => ({
+                              ...p,
+                              title: e.target.value,
+                            }))
+                          }
+                          className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      </dd>
+                    </div>
+                  )}
+
+                  {/* Client */}
+                  <div className="px-5 py-3">
+                    <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                      Client
+                    </dt>
+                    <dd>
+                      <Link
+                        to={`/clients/${project.client.id}`}
+                        className="text-sm text-primary underline"
+                      >
+                        {project.client.name}
+                      </Link>
+                    </dd>
+                  </div>
+
+                  {/* Tracked time placeholder */}
+                  <div className="px-5 py-3">
+                    <dt className="mb-1 text-xs font-medium text-muted-foreground">
+                      Tracked time
+                    </dt>
+                    <dd className="text-sm text-muted-foreground">
+                      — (Phase 6)
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <p className="text-right text-xs text-muted-foreground">
+                Created{" "}
+                {new Date(project.createdAt).toLocaleDateString("de-DE", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
             </div>
+          </div>
 
-            <p className="text-right text-xs text-muted-foreground">
-              Created{" "}
-              {new Date(project.createdAt).toLocaleDateString("de-DE", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
+          {/* Progress – full width */}
+          <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-5 py-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Progress
+              </h2>
+            </div>
+            <div className="px-5 py-4">
+              {(() => {
+                const total = tasks.length;
+                const done = tasks.filter((t) => t.status === "done").length;
+                const percent =
+                  total > 0 ? Math.round((done / total) * 100) : 0;
+                return (
+                  <>
+                    <div className="mb-2 flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Task completion
+                      </span>
+                      <span className="font-medium">
+                        {done}/{total} ({percent}%)
+                      </span>
+                    </div>
+                    <ProgressBar percent={percent} />
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Tasks – full width */}
+          <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Tasks
+              </h2>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-md border border-border bg-muted/30">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("kanban")}
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-l-md transition ${
+                      viewMode === "kanban"
+                        ? "bg-card shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-label="Kanban view"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-r-md transition ${
+                      viewMode === "list"
+                        ? "bg-card shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-label="List view"
+                  >
+                    <List className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={openAddTask}
+                  className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground transition hover:opacity-90"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add task
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              {viewMode === "kanban" ? (
+                <KanbanBoard
+                  tasks={tasks}
+                  onTasksChange={setTasks}
+                  onEdit={openEditTask}
+                  onDelete={(taskId) => void handleDeleteTask(taskId)}
+                />
+              ) : (
+                <TaskListView
+                  tasks={tasks}
+                  onEdit={openEditTask}
+                  onDelete={(taskId) => void handleDeleteTask(taskId)}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {modalOpen && (
+        <TaskModal
+          projectId={id!}
+          task={editingTask}
+          onClose={() => {
+            setModalOpen(false);
+            setEditingTask(null);
+          }}
+          onSaved={handleTaskSaved}
+        />
+      )}
+    </>
   );
 }

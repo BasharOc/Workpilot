@@ -7,6 +7,7 @@ import {
   updateProject,
   deleteProject,
 } from "../controllers/projects.controller.js";
+import { listTasks, createTask } from "../controllers/tasks.controller.js";
 
 const router = Router();
 
@@ -17,5 +18,7 @@ router.post("/", createProject);
 router.get("/:id", getProjectById);
 router.put("/:id", updateProject);
 router.delete("/:id", deleteProject);
+router.get("/:projectId/tasks", listTasks);
+router.post("/:projectId/tasks", createTask);
 
 export default router;

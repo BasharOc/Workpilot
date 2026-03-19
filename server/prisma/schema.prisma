@@ -53,7 +53,26 @@ model Project {
   createdAt   DateTime  @default(now()) @map("created_at")
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tasks  Task[]
 
   @@index([clientId])
   @@map("projects")
+}
+
+model Task {
+  id             String    @id @default(uuid())
+  projectId      String    @map("project_id")
+  title          String
+  description    String?
+  status         String    @default("todo")
+  priority       String    @default("medium")
+  position       Int       @default(0)
+  dueDate        DateTime? @map("due_date")
+  estimatedHours Decimal?  @map("estimated_hours") @db.Decimal(5, 2)
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("tasks")
 }
