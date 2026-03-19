@@ -86,7 +86,7 @@ export default function OnboardingWizard({ onClose }: OnboardingWizardProps) {
     try {
       await api.post("/auth/seed-demo");
       onClose();
-      navigate("/");
+      navigate("/dashboard");
       // Small delay so dashboard loads fresh data
       setTimeout(() => window.location.reload(), 100);
     } catch (err: unknown) {

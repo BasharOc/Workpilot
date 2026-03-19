@@ -33,7 +33,7 @@ export default function RegisterPage() {
     try {
       setServerError("");
       await registerUser(data);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
       setServerError(error.response?.data?.error || "Registration failed");

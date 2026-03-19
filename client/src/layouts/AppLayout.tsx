@@ -18,7 +18,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import OnboardingWizard from "@/components/OnboardingWizard";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/clients", icon: Users, label: "Clients", end: false },
   { to: "/projects", icon: Briefcase, label: "Projects", end: false },
   { to: "/tasks", icon: CheckSquare2, label: "Tasks", end: false },

@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 
 export function usePortalMenu() {
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const [pos, setPos] = useState<{ top: number; right: number }>(
-    { top: 0, right: 0 },
-  );
+  const [pos, setPos] = useState<{ top: number; right: number }>({
+    top: 0,
+    right: 0,
+  });
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {

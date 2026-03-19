@@ -31,7 +31,7 @@ export default function LoginPage() {
     try {
       setServerError("");
       await login(data);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
       setServerError(error.response?.data?.error || "Login failed");
