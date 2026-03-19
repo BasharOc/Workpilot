@@ -72,14 +72,20 @@ function SidebarContent({
           )
         ) : (
           <>
-            <img
-              src="/workpilot_no_bg.png"
-              alt="Workpilot"
-              className="h-7 w-7 shrink-0 object-contain"
-            />
-            <span className="ml-2 flex-1 text-sm font-semibold text-sidebar-foreground">
-              Workpilot
-            </span>
+            <NavLink
+              to="/dashboard"
+              onClick={onLinkClick}
+              className="flex min-w-0 flex-1 items-center rounded-md outline-none transition-colors hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <img
+                src="/workpilot_no_bg.png"
+                alt="Workpilot"
+                className="h-7 w-7 shrink-0 object-contain"
+              />
+              <span className="ml-2 truncate text-sm font-semibold text-sidebar-foreground">
+                Workpilot
+              </span>
+            </NavLink>
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
@@ -209,7 +215,17 @@ export default function AppLayout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-semibold">Workpilot</span>
+          <NavLink
+            to="/dashboard"
+            className="flex items-center gap-2 rounded-md outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <img
+              src="/workpilot_no_bg.png"
+              alt="Workpilot"
+              className="h-6 w-6 shrink-0 object-contain"
+            />
+            <span className="text-sm font-semibold">Workpilot</span>
+          </NavLink>
         </header>
 
         <main className="flex-1 overflow-y-auto">

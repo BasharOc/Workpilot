@@ -196,7 +196,7 @@ export default function ProjectsPage() {
           >
             <span className="text-base leading-none">+</span>
             Add Project
-            <kbd className="rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-xs">
+            <kbd className="hidden rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-xs sm:inline-flex">
               {formatAltShortcut("N")}
             </kbd>
           </button>

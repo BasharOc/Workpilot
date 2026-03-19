@@ -98,11 +98,11 @@ export default function InvoicesPage() {
               type="button"
               onClick={() => setModalOpen(true)}
               title={`Add Invoice (${formatAltShortcut("N")})`}
-              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            className="inline-flex h-9 min-w-[9.75rem] shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 sm:min-w-0"
             >
               <Plus className="h-4 w-4" />
               Add Invoice
-              <kbd className="rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-xs">
+              <kbd className="hidden rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-xs sm:inline-flex">
                 {formatAltShortcut("N")}
               </kbd>
             </button>
