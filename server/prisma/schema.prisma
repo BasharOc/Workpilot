@@ -19,6 +19,7 @@ model User {
   createdAt       DateTime @default(now()) @map("created_at")
 
   clients Client[]
+  invoices Invoice[]
 
   @@map("users")
 }
@@ -37,6 +38,7 @@ model Client {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects Project[]
+  invoices Invoice[]
 
   @@index([userId])
   @@map("clients")
@@ -94,4 +96,25 @@ model TimeEntry {
   @@index([taskId])
   @@index([projectId])
   @@map("time_entries")
+}
+
+model Invoice {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  clientId      String    @map("client_id")
+  invoiceNumber String    @map("invoice_number")
+  status        String    @default("draft")
+  issueDate     DateTime  @default(now()) @map("issue_date")
+  dueDate       DateTime? @map("due_date")
+  items         Json      @default("[]")
+  notes         String?
+  currency      String    @default("EUR")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([clientId])
+  @@map("invoices")
 }

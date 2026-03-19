@@ -5,6 +5,7 @@ import {
   Users,
   Briefcase,
   CheckSquare2,
+  Receipt,
   Sun,
   Moon,
   Menu,
@@ -21,6 +22,7 @@ const navItems = [
   { to: "/clients", icon: Users, label: "Clients", end: false },
   { to: "/projects", icon: Briefcase, label: "Projects", end: false },
   { to: "/tasks", icon: CheckSquare2, label: "Tasks", end: false },
+  { to: "/invoices", icon: Receipt, label: "Invoices", end: false },
 ];
 
 function SidebarContent({
