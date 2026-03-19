@@ -58,7 +58,7 @@ export const stopTimer: RequestHandler = async (req, res) => {
   const userId = (req as unknown as { userId: string }).userId;
 
   const entry = await prisma.timeEntry.findFirst({
-    where: { id, task: { project: { client: { userId } } } },
+    where: { id: String(id), task: { project: { client: { userId } } } },
   });
   if (!entry) {
     res.status(404).json({ error: "Time entry not found" });
@@ -76,7 +76,7 @@ export const stopTimer: RequestHandler = async (req, res) => {
   const endedAt = new Date(entry.startedAt.getTime() + durationSeconds * 1000);
 
   const updated = await prisma.timeEntry.update({
-    where: { id },
+    where: { id: String(id) },
     data: { endedAt, durationSeconds },
   });
 
@@ -89,7 +89,7 @@ export const listByProject: RequestHandler = async (req, res) => {
   const userId = (req as unknown as { userId: string }).userId;
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, client: { userId } },
+    where: { id: String(projectId), client: { userId } },
   });
   if (!project) {
     res.status(404).json({ error: "Project not found" });
@@ -97,7 +97,7 @@ export const listByProject: RequestHandler = async (req, res) => {
   }
 
   const entries = await prisma.timeEntry.findMany({
-    where: { projectId },
+    where: { projectId: String(projectId) },
     include: { task: { select: { id: true, title: true } } },
     orderBy: { startedAt: "desc" },
   });
