@@ -2,6 +2,8 @@ import { RequestHandler } from "express";
 import { z } from "zod";
 import prisma from "../db/prisma.js";
 
+const MAX_TIMER_SECONDS = 8 * 60 * 60; // 8 hours
+
 // POST /api/time-entries — Start timer for a task
 export const startTimer: RequestHandler = async (req, res) => {
   const schema = z.object({ taskId: z.string().uuid() });
@@ -30,9 +32,12 @@ export const startTimer: RequestHandler = async (req, res) => {
     where: { taskId, endedAt: null },
   });
   if (existing) {
-    const endedAt = new Date();
-    const durationSeconds = Math.round(
-      (endedAt.getTime() - existing.startedAt.getTime()) / 1000,
+    const rawDuration = Math.round(
+      (Date.now() - existing.startedAt.getTime()) / 1000,
+    );
+    const durationSeconds = Math.min(rawDuration, MAX_TIMER_SECONDS);
+    const endedAt = new Date(
+      existing.startedAt.getTime() + durationSeconds * 1000,
     );
     await prisma.timeEntry.update({
       where: { id: existing.id },
@@ -64,9 +69,12 @@ export const stopTimer: RequestHandler = async (req, res) => {
     return;
   }
 
-  const endedAt = new Date();
-  const durationSeconds = Math.round(
-    (endedAt.getTime() - entry.startedAt.getTime()) / 1000,
+  const rawDuration = Math.round(
+    (Date.now() - entry.startedAt.getTime()) / 1000,
+  );
+  const durationSeconds = Math.min(rawDuration, MAX_TIMER_SECONDS);
+  const endedAt = new Date(
+    entry.startedAt.getTime() + durationSeconds * 1000,
   );
 
   const updated = await prisma.timeEntry.update({

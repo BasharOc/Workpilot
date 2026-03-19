@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -23,21 +23,43 @@ interface Props {
   onTimerStop?: (entryId: string) => void;
 }
 
-function LiveTimer({ startedAt }: { startedAt: string }) {
+const MAX_TIMER_SECONDS = 8 * 3600; // 8 hours
+
+function LiveTimer({
+  startedAt,
+  onAutoStop,
+}: {
+  startedAt: string;
+  onAutoStop?: () => void;
+}) {
   const [elapsed, setElapsed] = useState(() =>
     Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
   );
+  const callbackRef = useRef(onAutoStop);
   useEffect(() => {
-    const id = setInterval(
-      () =>
-        setElapsed(
-          Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
-        ),
-      1000,
-    );
+    callbackRef.current = onAutoStop;
+  }, [onAutoStop]);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const next = Math.floor(
+        (Date.now() - new Date(startedAt).getTime()) / 1000,
+      );
+      if (next >= MAX_TIMER_SECONDS) {
+        setElapsed(MAX_TIMER_SECONDS);
+        clearInterval(id);
+        callbackRef.current?.();
+        return;
+      }
+      setElapsed(next);
+    }, 1000);
     return () => clearInterval(id);
   }, [startedAt]);
-  return <span>{formatDuration(elapsed)}</span>;
+  const nearLimit = elapsed >= MAX_TIMER_SECONDS - 300;
+  return (
+    <span style={nearLimit ? { color: "rgb(245, 158, 11)" } : undefined}>
+      {formatDuration(Math.min(elapsed, MAX_TIMER_SECONDS))}
+    </span>
+  );
 }
 
 export default function TaskCard({
@@ -136,7 +158,10 @@ export default function TaskCard({
                 {activeTimer ? (
                   <>
                     <Square className="h-3 w-3" />
-                    <LiveTimer startedAt={activeTimer.startedAt} />
+                    <LiveTimer
+                      startedAt={activeTimer.startedAt}
+                      onAutoStop={() => onTimerStop(activeTimer.id)}
+                    />
                   </>
                 ) : (
                   <>

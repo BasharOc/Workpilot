@@ -1,25 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pencil, Trash2, Calendar, Play, Square } from "lucide-react";
 import type { Task } from "@/types/task";
 import { STATUS_LABELS, PRIORITY_LABELS, PRIORITY_STYLES } from "@/types/task";
 import type { TimeEntry } from "@/types/time-entry";
 import { formatDuration } from "@/types/time-entry";
 
-function LiveTimer({ startedAt }: { startedAt: string }) {
+const MAX_TIMER_SECONDS = 8 * 3600; // 8 hours
+
+function LiveTimer({
+  startedAt,
+  onAutoStop,
+}: {
+  startedAt: string;
+  onAutoStop?: () => void;
+}) {
   const [elapsed, setElapsed] = useState(() =>
     Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
   );
+  const callbackRef = useRef(onAutoStop);
   useEffect(() => {
-    const id = setInterval(
-      () =>
-        setElapsed(
-          Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
-        ),
-      1000,
-    );
+    callbackRef.current = onAutoStop;
+  }, [onAutoStop]);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const next = Math.floor(
+        (Date.now() - new Date(startedAt).getTime()) / 1000,
+      );
+      if (next >= MAX_TIMER_SECONDS) {
+        setElapsed(MAX_TIMER_SECONDS);
+        clearInterval(id);
+        callbackRef.current?.();
+        return;
+      }
+      setElapsed(next);
+    }, 1000);
     return () => clearInterval(id);
   }, [startedAt]);
-  return <span>{formatDuration(elapsed)}</span>;
+  const nearLimit = elapsed >= MAX_TIMER_SECONDS - 300;
+  return (
+    <span style={nearLimit ? { color: "rgb(245, 158, 11)" } : undefined}>
+      {formatDuration(Math.min(elapsed, MAX_TIMER_SECONDS))}
+    </span>
+  );
 }
 
 const STATUS_STYLES: Record<Task["status"], string> = {
@@ -139,9 +161,8 @@ export default function TaskListView({
                         type="button"
                         onClick={() => {
                           const active = activeTimers[task.id];
-                          active
-                            ? onTimerStop(active.id)
-                            : onTimerStart(task.id);
+                          if (active) onTimerStop(active.id);
+                          else onTimerStart(task.id);
                         }}
                         className={`inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium transition ${
                           activeTimers[task.id]
@@ -155,6 +176,9 @@ export default function TaskListView({
                             <Square className="h-3 w-3" />
                             <LiveTimer
                               startedAt={activeTimers[task.id].startedAt}
+                              onAutoStop={() =>
+                                onTimerStop(activeTimers[task.id].id)
+                              }
                             />
                           </>
                         ) : (
