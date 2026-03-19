@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   email: string;
+  googleId: string | null;
   firstName: string;
   lastName: string;
   avatarUrl: string | null;

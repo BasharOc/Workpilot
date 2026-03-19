@@ -11,6 +11,7 @@ interface AuthState {
 
   login: (data: LoginData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
+  completeOAuth: (accessToken: string, isNewUser?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearNewUser: () => void;
@@ -32,6 +33,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     const response = await api.post<AuthResponse>("/auth/register", data);
     setAccessToken(response.data.accessToken);
     set({ user: response.data.user, isAuthenticated: true, isNewUser: true });
+  },
+
+  completeOAuth: async (token, isNewUser = false) => {
+    setAccessToken(token);
+    const response = await api.get<{ user: User }>("/auth/profile");
+    set({
+      user: response.data.user,
+      isAuthenticated: true,
+      isNewUser,
+      isLoading: false,
+    });
   },
 
   logout: async () => {

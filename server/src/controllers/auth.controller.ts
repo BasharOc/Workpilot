@@ -1,7 +1,9 @@
 import type { Request, Response } from "express";
+import crypto from "node:crypto";
 import {
   registerUser,
   loginUser,
+  loginWithGoogle,
   refreshTokens,
   getUserById,
 } from "../services/auth.service.js";
@@ -24,6 +26,7 @@ const loginSchema = z.object({
 });
 
 const REFRESH_TOKEN_COOKIE = "refresh_token";
+const GOOGLE_STATE_COOKIE = "google_oauth_state";
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -31,6 +34,51 @@ const COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   path: "/",
 };
+const SHORT_COOKIE_OPTIONS = {
+  ...COOKIE_OPTIONS,
+  maxAge: 10 * 60 * 1000,
+};
+
+function getGoogleRedirectUri() {
+  return (
+    process.env.GOOGLE_REDIRECT_URI ||
+    `${process.env.SERVER_URL || "http://localhost:3000"}/api/auth/google/callback`
+  );
+}
+
+function getGoogleFrontendCallbackUrl() {
+  return (
+    process.env.GOOGLE_FRONTEND_CALLBACK_URL ||
+    `${process.env.CLIENT_URL || "http://localhost:5173"}/auth/google/callback`
+  );
+}
+
+function buildGoogleAuthUrl(state: string) {
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID || "",
+    redirect_uri: getGoogleRedirectUri(),
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "select_account",
+    state,
+  });
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+function redirectGoogleResult(
+  res: Response,
+  params: Record<string, string | undefined>,
+) {
+  const callbackUrl = new URL(getGoogleFrontendCallbackUrl());
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value) callbackUrl.searchParams.set(key, value);
+  }
+
+  res.redirect(callbackUrl.toString());
+}
 
 export async function register(req: Request, res: Response): Promise<void> {
   try {
@@ -86,6 +134,113 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function googleStart(_req: Request, res: Response): Promise<void> {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    res.status(500).json({ error: "Google login is not configured" });
+    return;
+  }
+
+  const state = crypto.randomUUID();
+  res.cookie(GOOGLE_STATE_COOKIE, state, SHORT_COOKIE_OPTIONS);
+  res.redirect(buildGoogleAuthUrl(state));
+}
+
+export async function googleCallback(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const code = typeof req.query.code === "string" ? req.query.code : "";
+  const state = typeof req.query.state === "string" ? req.query.state : "";
+  const storedState = req.cookies?.[GOOGLE_STATE_COOKIE];
+
+  if (!code || !state || !storedState || state !== storedState) {
+    res.clearCookie(GOOGLE_STATE_COOKIE);
+    redirectGoogleResult(res, {
+      error: "Google login could not be verified. Please try again.",
+    });
+    return;
+  }
+
+  try {
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: getGoogleRedirectUri(),
+        grant_type: "authorization_code",
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error("Failed to exchange Google authorization code");
+    }
+
+    const tokenData = (await tokenResponse.json()) as {
+      access_token?: string;
+    };
+
+    if (!tokenData.access_token) {
+      throw new Error("Google access token missing");
+    }
+
+    const profileResponse = await fetch(
+      "https://openidconnect.googleapis.com/v1/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+      },
+    );
+
+    if (!profileResponse.ok) {
+      throw new Error("Failed to load Google profile");
+    }
+
+    const profile = (await profileResponse.json()) as {
+      sub?: string;
+      email?: string;
+      email_verified?: boolean;
+      given_name?: string;
+      family_name?: string;
+      name?: string;
+      picture?: string;
+    };
+
+    if (!profile.sub || !profile.email || !profile.email_verified) {
+      throw new Error("Google account data is incomplete");
+    }
+
+    const fallbackName = (profile.name || "").trim();
+    const [fallbackFirst = "Google", ...fallbackLastParts] =
+      fallbackName.split(/\s+/);
+    const result = await loginWithGoogle({
+      email: profile.email,
+      googleId: profile.sub,
+      firstName: profile.given_name || fallbackFirst,
+      lastName: profile.family_name || fallbackLastParts.join(" ") || "User",
+      avatarUrl: profile.picture ?? null,
+    });
+
+    res.clearCookie(GOOGLE_STATE_COOKIE);
+    res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS);
+    redirectGoogleResult(res, {
+      accessToken: result.accessToken,
+      isNewUser: result.isNewUser ? "1" : "0",
+    });
+  } catch (err) {
+    console.error("Google login error:", err);
+    res.clearCookie(GOOGLE_STATE_COOKIE);
+    redirectGoogleResult(res, {
+      error: "Google login failed. Please try again.",
+    });
+  }
+}
+
 export async function refresh(req: Request, res: Response): Promise<void> {
   try {
     const token = req.cookies?.[REFRESH_TOKEN_COOKIE];
@@ -110,6 +265,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
 
 export async function logout(_req: Request, res: Response): Promise<void> {
   res.clearCookie(REFRESH_TOKEN_COOKIE);
+  res.clearCookie(GOOGLE_STATE_COOKIE);
   res.json({ message: "Logged out" });
 }
 
@@ -332,20 +488,16 @@ export async function resetPassword(
     });
 
     if (!token) {
-      res
-        .status(400)
-        .json({
-          error: "Kein aktiver Code gefunden. Bitte neuen Code anfordern.",
-        });
+      res.status(400).json({
+        error: "Kein aktiver Code gefunden. Bitte neuen Code anfordern.",
+      });
       return;
     }
 
     if (token.expiresAt < new Date()) {
-      res
-        .status(400)
-        .json({
-          error: "Der Code ist abgelaufen. Bitte neuen Code anfordern.",
-        });
+      res.status(400).json({
+        error: "Der Code ist abgelaufen. Bitte neuen Code anfordern.",
+      });
       return;
     }
 

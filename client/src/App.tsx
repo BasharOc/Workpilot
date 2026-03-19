@@ -5,6 +5,7 @@ import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import GoogleAuthCallbackPage from "@/pages/GoogleAuthCallbackPage";
 import MaintenancePage from "@/pages/MaintenancePage";
 import ClientsPage from "@/pages/ClientsPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
@@ -120,6 +121,7 @@ export default function App() {
             </GuestRoute>
           }
         />
+        <Route path="/auth/google/callback" element={<GoogleAuthCallbackPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Protected layout routes */}

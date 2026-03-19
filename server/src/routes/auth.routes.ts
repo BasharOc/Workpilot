@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   register,
   login,
+  googleStart,
+  googleCallback,
   refresh,
   logout,
   getProfile,
@@ -16,6 +18,8 @@ const router = Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.get("/google", googleStart);
+router.get("/google/callback", googleCallback);
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.get("/profile", requireAuth, getProfile);

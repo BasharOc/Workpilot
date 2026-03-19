@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 import { Eye, EyeOff, LoaderCircle, UserPlus } from "lucide-react";
 
 const registerSchema = z.object({
@@ -178,6 +179,19 @@ export default function RegisterPage() {
               </>
             )}
           </button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <GoogleAuthButton label="Sign up with Google" />
         </form>
 
         <p className="text-center text-sm text-muted-foreground">

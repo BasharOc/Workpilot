@@ -7,8 +7,27 @@ import type { User } from "../generated/prisma/client.js";
 const SALT_ROUNDS = 12;
 
 function stripPassword(user: User): UserPublic {
-  const { passwordHash: _, ...publicUser } = user;
-  return publicUser;
+  return {
+    id: user.id,
+    email: user.email,
+    googleId: user.googleId,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    avatarUrl: user.avatarUrl,
+    themePreference: user.themePreference,
+    createdAt: user.createdAt,
+  };
+}
+
+function buildAuthResult(user: User) {
+  const accessToken = generateAccessToken(user.id);
+  const refreshToken = generateRefreshToken(user.id);
+
+  return {
+    user: stripPassword(user),
+    accessToken,
+    refreshToken,
+  };
 }
 
 function generateAccessToken(userId: string): string {
@@ -49,20 +68,13 @@ export async function registerUser(
     data: { email, passwordHash, firstName, lastName },
   });
 
-  const accessToken = generateAccessToken(user.id);
-  const refreshToken = generateRefreshToken(user.id);
-
-  return {
-    user: stripPassword(user),
-    accessToken,
-    refreshToken,
-  };
+  return buildAuthResult(user);
 }
 
 export async function loginUser(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user) {
+  if (!user || !user.passwordHash) {
     throw new Error("Invalid email or password");
   }
 
@@ -72,13 +84,59 @@ export async function loginUser(email: string, password: string) {
     throw new Error("Invalid email or password");
   }
 
-  const accessToken = generateAccessToken(user.id);
-  const refreshToken = generateRefreshToken(user.id);
+  return buildAuthResult(user);
+}
+
+export async function loginWithGoogle(params: {
+  email: string;
+  googleId: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string | null;
+}) {
+  const email = params.email.toLowerCase().trim();
+  const googleId = params.googleId.trim();
+
+  let user = await prisma.user.findUnique({
+    where: { googleId },
+  });
+
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: { email },
+    });
+  }
+
+  const userData = {
+    email,
+    googleId,
+    firstName: params.firstName.trim(),
+    lastName: params.lastName.trim(),
+    avatarUrl: params.avatarUrl ?? null,
+  };
+
+  let isNewUser = false;
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: userData,
+    });
+    isNewUser = true;
+  } else {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        googleId,
+        firstName: user.firstName || userData.firstName,
+        lastName: user.lastName || userData.lastName,
+        avatarUrl: user.avatarUrl ?? userData.avatarUrl,
+      },
+    });
+  }
 
   return {
-    user: stripPassword(user),
-    accessToken,
-    refreshToken,
+    ...buildAuthResult(user),
+    isNewUser,
   };
 }
 
@@ -93,14 +151,7 @@ export async function refreshTokens(refreshToken: string) {
     throw new Error("User not found");
   }
 
-  const newAccessToken = generateAccessToken(user.id);
-  const newRefreshToken = generateRefreshToken(user.id);
-
-  return {
-    user: stripPassword(user),
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
-  };
+  return buildAuthResult(user);
 }
 
 export async function getUserById(userId: string): Promise<UserPublic | null> {
