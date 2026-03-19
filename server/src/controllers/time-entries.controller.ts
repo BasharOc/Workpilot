@@ -73,9 +73,7 @@ export const stopTimer: RequestHandler = async (req, res) => {
     (Date.now() - entry.startedAt.getTime()) / 1000,
   );
   const durationSeconds = Math.min(rawDuration, MAX_TIMER_SECONDS);
-  const endedAt = new Date(
-    entry.startedAt.getTime() + durationSeconds * 1000,
-  );
+  const endedAt = new Date(entry.startedAt.getTime() + durationSeconds * 1000);
 
   const updated = await prisma.timeEntry.update({
     where: { id },

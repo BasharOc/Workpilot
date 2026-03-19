@@ -674,20 +674,6 @@ export default function ClientsPage() {
                     </tr>
                   ))
                 )}
-                {Array.from({
-                  length: Math.max(0, PAGE_SIZE - paginatedActive.length),
-                }).map((_, i) => (
-                  <tr
-                    key={`empty-${i}`}
-                    className="border-b border-border last:border-b-0"
-                  >
-                    {Array.from({ length: 6 }).map((__, j) => (
-                      <td key={j} className="px-4 py-3 align-middle">
-                        <span className="block text-sm">&nbsp;</span>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
               </tbody>
             </table>
           </div>
