@@ -6,6 +6,7 @@ import {
   createClient,
   updateClient,
   deleteClient,
+  listInvoicesByClient,
 } from "../controllers/clients.controller.js";
 import { listProjectsByClient } from "../controllers/projects.controller.js";
 
@@ -19,5 +20,6 @@ router.get("/:id", getClientById);
 router.put("/:id", updateClient);
 router.delete("/:id", deleteClient);
 router.get("/:id/projects", listProjectsByClient);
+router.get("/:id/invoices", listInvoicesByClient);
 
 export default router;

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Pencil, Trash2, Printer } from "lucide-react";
+import { Pencil, Trash2, Printer, Download } from "lucide-react";
 import api from "@/api/axios";
 import type { Invoice } from "@/types/invoice";
 import {
@@ -18,6 +18,8 @@ export default function InvoiceDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const docRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -38,6 +40,28 @@ export default function InvoiceDetailPage() {
       setInvoice(data);
     } finally {
       setIsUpdating(false);
+    }
+  }
+
+  async function handleExportPdf() {
+    if (!docRef.current || !invoice) return;
+    setIsExporting(true);
+    try {
+      const { toCanvas } = await import("html-to-image");
+      const { jsPDF } = await import("jspdf");
+      const canvas = await toCanvas(docRef.current, { pixelRatio: 2 });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = (canvas.height * pageWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
+      pdf.save(`${invoice.invoiceNumber}.pdf`);
+    } finally {
+      setIsExporting(false);
     }
   }
 
@@ -80,6 +104,11 @@ export default function InvoiceDetailPage() {
   }
 
   const total = computeTotal(invoice.items);
+  const isOverdue =
+    invoice.dueDate &&
+    invoice.status !== "paid" &&
+    invoice.status !== "cancelled" &&
+    new Date(invoice.dueDate) < new Date();
 
   return (
     <>
@@ -133,6 +162,17 @@ export default function InvoiceDetailPage() {
                 Print
               </button>
 
+              {/* PDF Download */}
+              <button
+                type="button"
+                onClick={() => void handleExportPdf()}
+                disabled={isExporting}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium transition hover:bg-muted disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" />
+                {isExporting ? "Exportiere…" : "PDF"}
+              </button>
+
               {/* Edit — only draft */}
               {invoice.status === "draft" && (
                 <button
@@ -160,7 +200,10 @@ export default function InvoiceDetailPage() {
           </div>
 
           {/* Invoice document */}
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none">
+          <div
+            ref={docRef}
+            className="overflow-hidden rounded-xl border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none"
+          >
             {/* Doc header */}
             <div className="flex flex-wrap items-start justify-between gap-6 border-b border-border px-8 py-8 print:px-0">
               <div>
@@ -219,12 +262,19 @@ export default function InvoiceDetailPage() {
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Due Date
                     </p>
-                    <p className="text-sm">
+                    <p
+                      className={`text-sm ${isOverdue ? "font-semibold text-red-600" : ""}`}
+                    >
                       {new Date(invoice.dueDate).toLocaleDateString("de-DE", {
                         day: "2-digit",
                         month: "long",
                         year: "numeric",
                       })}
+                      {isOverdue && (
+                        <span className="ml-2 inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                          Überfällig
+                        </span>
+                      )}
                     </p>
                   </div>
                 )}

@@ -344,13 +344,37 @@ export default function ProjectsPage() {
                           {getStatusLabel(p.status)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground">
+                      <td className="px-4 py-3 align-middle">
                         {p.deadline
-                          ? new Date(p.deadline).toLocaleDateString("de-DE", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
+                          ? (() => {
+                              const overdue =
+                                p.status !== "completed" &&
+                                p.status !== "cancelled" &&
+                                new Date(p.deadline) < new Date();
+                              return (
+                                <span
+                                  className={
+                                    overdue
+                                      ? "font-medium text-red-600"
+                                      : "text-muted-foreground"
+                                  }
+                                >
+                                  {new Date(p.deadline).toLocaleDateString(
+                                    "de-DE",
+                                    {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    },
+                                  )}
+                                  {overdue && (
+                                    <span className="ml-1.5 inline-flex items-center rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-500">
+                                      !
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })()
                           : "—"}
                       </td>
                       <td className="px-4 py-3 align-middle text-muted-foreground">

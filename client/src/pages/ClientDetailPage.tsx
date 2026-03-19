@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import api from "@/api/axios";
+import {
+  STATUS_LABELS as INV_STATUS_LABELS,
+  STATUS_STYLES as INV_STATUS_STYLES,
+  computeTotal,
+  formatMoney,
+  type Invoice,
+} from "@/types/invoice";
 
 interface Client {
   id: string;
@@ -64,8 +71,10 @@ function getStatusClass(status: string) {
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -83,12 +92,14 @@ export default function ClientDetailPage() {
   useEffect(() => {
     async function fetchClient() {
       try {
-        const [clientRes, projectsRes] = await Promise.all([
+        const [clientRes, projectsRes, invoicesRes] = await Promise.all([
           api.get(`/clients/${id}`),
           api.get(`/clients/${id}/projects`),
+          api.get<Invoice[]>(`/clients/${id}/invoices`),
         ]);
         setClient(clientRes.data);
         setProjects(projectsRes.data);
+        setInvoices(invoicesRes.data);
       } catch {
         setError("Client not found");
       } finally {
@@ -377,6 +388,83 @@ export default function ClientDetailPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+
+        {/* Invoices */}
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Rechnungen ({invoices.length})
+            </h2>
+            <Link
+              to={`/invoices`}
+              className="text-xs text-primary transition hover:underline"
+            >
+              View all
+            </Link>
+          </div>
+          {invoices.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Noch keine Rechnungen.
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs font-medium text-muted-foreground">
+                  <th className="px-5 py-2.5 text-left">Nummer</th>
+                  <th className="px-5 py-2.5 text-left">Status</th>
+                  <th className="px-5 py-2.5 text-left">Fällig</th>
+                  <th className="px-5 py-2.5 text-right">Betrag</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => {
+                  const isOverdue =
+                    inv.dueDate &&
+                    inv.status !== "paid" &&
+                    inv.status !== "cancelled" &&
+                    new Date(inv.dueDate) < new Date();
+                  return (
+                    <tr
+                      key={inv.id}
+                      onClick={() => navigate(`/invoices/${inv.id}`)}
+                      className="cursor-pointer border-b border-border/50 transition hover:bg-muted/30 last:border-0"
+                    >
+                      <td className="px-5 py-3 font-mono text-xs font-medium">
+                        {inv.invoiceNumber}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${INV_STATUS_STYLES[inv.status]}`}
+                        >
+                          {INV_STATUS_LABELS[inv.status]}
+                        </span>
+                      </td>
+                      <td
+                        className={`px-5 py-3 text-xs ${isOverdue ? "font-semibold text-red-600" : "text-muted-foreground"}`}
+                      >
+                        {inv.dueDate
+                          ? new Date(inv.dueDate).toLocaleDateString("de-DE", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                        {isOverdue && (
+                          <span className="ml-1 text-red-400">!</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-right font-medium tabular-nums">
+                        {formatMoney(computeTotal(inv.items), inv.currency)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
 

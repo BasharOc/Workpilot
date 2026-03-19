@@ -111,3 +111,22 @@ export async function deleteClient(req: AuthRequest, res: Response) {
     res.status(500).json({ error: "Failed to delete client" });
   }
 }
+
+export async function listInvoicesByClient(req: AuthRequest, res: Response) {
+  try {
+    const client = await prisma.client.findFirst({
+      where: { id: String(req.params.id), userId: req.userId },
+    });
+    if (!client) {
+      res.status(404).json({ error: "Client not found" });
+      return;
+    }
+    const invoices = await prisma.invoice.findMany({
+      where: { clientId: client.id, userId: req.userId },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(invoices);
+  } catch {
+    res.status(500).json({ error: "Failed to fetch invoices" });
+  }
+}

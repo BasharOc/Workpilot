@@ -54,6 +54,8 @@ interface DashboardData {
   recentProjects: RecentProject[];
   monthlyRevenue: { month: string; revenue: number }[];
   invoiceStatusCounts: Record<string, number>;
+  overdueInvoices: Invoice[];
+  overdueProjects: RecentProject[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -292,6 +294,9 @@ export default function DashboardPage() {
   const stats = data?.stats;
   const recentInvoices = data?.recentInvoices ?? [];
   const recentProjects = data?.recentProjects ?? [];
+  const overdueInvoices = data?.overdueInvoices ?? [];
+  const overdueProjects = data?.overdueProjects ?? [];
+  const hasOverdue = overdueInvoices.length > 0 || overdueProjects.length > 0;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
@@ -337,6 +342,61 @@ export default function DashboardPage() {
           icon={Hourglass}
         />
       </div>
+
+      {/* Overdue warning */}
+      {hasOverdue && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-red-700">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
+              !
+            </span>
+            {overdueInvoices.length + overdueProjects.length} Überfällige
+            {overdueInvoices.length + overdueProjects.length === 1
+              ? "r Eintrag"
+              : " Einträge"}
+          </h2>
+          <div className="space-y-2">
+            {overdueInvoices.map((inv) => (
+              <div
+                key={inv.id}
+                onClick={() => navigate(`/invoices/${inv.id}`)}
+                className="flex cursor-pointer items-center justify-between rounded-lg border border-red-200 bg-white px-4 py-2.5 transition hover:bg-red-50"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-red-800">
+                    {inv.invoiceNumber}
+                  </p>
+                  <p className="text-xs text-red-500">
+                    {inv.client.name} · fällig {formatDate(inv.dueDate!)}
+                  </p>
+                </div>
+                <span className="ml-3 shrink-0 text-sm font-semibold text-red-700">
+                  {formatMoney(computeTotal(inv.items), inv.currency)}
+                </span>
+              </div>
+            ))}
+            {overdueProjects.map((proj) => (
+              <div
+                key={proj.id}
+                onClick={() => navigate(`/projects/${proj.id}`)}
+                className="flex cursor-pointer items-center justify-between rounded-lg border border-red-200 bg-white px-4 py-2.5 transition hover:bg-red-50"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-red-800">
+                    {proj.title}
+                  </p>
+                  <p className="text-xs text-red-500">
+                    {proj.client.name} · Deadline {formatDate(proj.deadline!)}
+                  </p>
+                </div>
+                <span className="ml-3 shrink-0 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                  Projekt
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">

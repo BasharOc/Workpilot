@@ -54,6 +54,8 @@ export async function getDashboard(req: AuthRequest, res: Response) {
       recentProjects,
       paidForChart,
       statusGroups,
+      overdueInvoices,
+      overdueProjects,
     ] = await Promise.all([
       prisma.client.count({ where: { userId } }),
 
@@ -111,6 +113,26 @@ export async function getDashboard(req: AuthRequest, res: Response) {
         where: { userId },
         _count: { id: true },
       }),
+
+      prisma.invoice.findMany({
+        where: {
+          userId,
+          status: { in: ["sent", "draft"] },
+          dueDate: { lt: now },
+        },
+        orderBy: { dueDate: "asc" },
+        include: { client: { select: { id: true, name: true } } },
+      }),
+
+      prisma.project.findMany({
+        where: {
+          client: { userId },
+          status: { notIn: ["completed", "cancelled"] },
+          deadline: { lt: now },
+        },
+        orderBy: { deadline: "asc" },
+        include: { client: { select: { id: true, name: true } } },
+      }),
     ]);
 
     const loggedHoursThisMonth =
@@ -166,6 +188,8 @@ export async function getDashboard(req: AuthRequest, res: Response) {
       recentProjects,
       monthlyRevenue,
       invoiceStatusCounts,
+      overdueInvoices,
+      overdueProjects,
     });
   } catch {
     res.status(500).json({ error: "Failed to load dashboard data" });
