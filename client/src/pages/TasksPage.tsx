@@ -9,11 +9,12 @@ import TaskListView from "@/components/tasks/TaskListView";
 import TaskModal from "@/components/tasks/TaskModal";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { formatAltShortcut } from "@/utils/shortcuts";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 interface ProjectOption {
   id: string;
   title: string;
-  client: { name: string };
+  client: { id: string; name: string };
 }
 
 function ProgressBar({ percent }: { percent: number }) {
@@ -29,7 +30,14 @@ function ProgressBar({ percent }: { percent: number }) {
 
 export default function TasksPage() {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedClientId, setSelectedClientId] = useLocalStorage(
+    "tasks_client_id",
+    "",
+  );
+  const [selectedProjectId, setSelectedProjectId] = useLocalStorage(
+    "tasks_project_id",
+    "",
+  );
   const [tasks, setTasks] = useState<Task[]>([]);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,12 +69,35 @@ export default function TasksPage() {
         const { data } = await api.get<ProjectOption[]>("/projects");
         const list = Array.isArray(data) ? data : [];
         setProjects(list);
+        if (list.length === 0) return;
+
+        // URL param takes priority (e.g. navigating from ProjectsPage)
         const fromUrl = searchParams.get("projectId");
-        const initial =
-          fromUrl && list.find((p) => p.id === fromUrl)
-            ? fromUrl
-            : (list[0]?.id ?? "");
-        setSelectedProjectId(initial);
+        if (fromUrl) {
+          const proj = list.find((p) => p.id === fromUrl);
+          if (proj) {
+            setSelectedClientId(proj.client.id);
+            setSelectedProjectId(proj.id);
+            return;
+          }
+        }
+
+        // Validate restored localStorage values against actual data
+        const clientIds = [...new Set(list.map((p) => p.client.id))];
+        const validClientId = clientIds.includes(selectedClientId)
+          ? selectedClientId
+          : (clientIds[0] ?? "");
+        const projectsOfClient = list.filter(
+          (p) => p.client.id === validClientId,
+        );
+        const validProjectId = projectsOfClient.some(
+          (p) => p.id === selectedProjectId,
+        )
+          ? selectedProjectId
+          : (projectsOfClient[0]?.id ?? "");
+
+        setSelectedClientId(validClientId);
+        setSelectedProjectId(validProjectId);
       } finally {
         setIsLoadingProjects(false);
       }
@@ -98,6 +129,12 @@ export default function TasksPage() {
   }, [selectedProjectId]);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const uniqueClients = [
+    ...new Map(projects.map((p) => [p.client.id, p.client])).values(),
+  ];
+  const projectsForClient = projects.filter(
+    (p) => p.client.id === selectedClientId,
+  );
   const totalTasks = tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done").length;
   const percent =
@@ -200,22 +237,48 @@ export default function TasksPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* Project selector */}
+              {/* Client + Project selectors */}
               {projects.length > 0 && (
-                <div className="relative">
-                  <select
-                    value={selectedProjectId}
-                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                    className="h-9 appearance-none rounded-md border border-border bg-card pl-3 pr-8 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title} — {p.client.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                </div>
+                <>
+                  {/* Client selector */}
+                  <div className="relative">
+                    <select
+                      value={selectedClientId}
+                      onChange={(e) => {
+                        const clientId = e.target.value;
+                        setSelectedClientId(clientId);
+                        const first = projects.find(
+                          (p) => p.client.id === clientId,
+                        );
+                        setSelectedProjectId(first?.id ?? "");
+                      }}
+                      className="h-9 appearance-none rounded-md border border-border bg-card pl-3 pr-8 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      {uniqueClients.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+
+                  {/* Project selector (filtered by client) */}
+                  <div className="relative">
+                    <select
+                      value={selectedProjectId}
+                      onChange={(e) => setSelectedProjectId(e.target.value)}
+                      className="h-9 appearance-none rounded-md border border-border bg-card pl-3 pr-8 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      {projectsForClient.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.title}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </>
               )}
 
               {/* View toggle */}

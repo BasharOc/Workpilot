@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useTheme } from "@/hooks/useTheme";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -147,7 +148,7 @@ function SidebarContent({
 
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useLocalStorage("sidebar_collapsed", false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
