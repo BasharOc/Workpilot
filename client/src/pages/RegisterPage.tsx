@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
-import { Eye, EyeOff, UserPlus } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, UserPlus } from "lucide-react";
 
 const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -167,7 +167,10 @@ export default function RegisterPage() {
             className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {isSubmitting ? (
-              "Creating account..."
+              <>
+                <LoaderCircle size={18} className="animate-spin" />
+                Creating account...
+              </>
             ) : (
               <>
                 <UserPlus size={18} />

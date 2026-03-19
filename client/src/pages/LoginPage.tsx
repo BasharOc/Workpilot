@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, LogIn } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.email("Please enter a valid email"),
@@ -119,7 +119,10 @@ export default function LoginPage() {
             className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {isSubmitting ? (
-              "Signing in..."
+              <>
+                <LoaderCircle size={18} className="animate-spin" />
+                Signing in...
+              </>
             ) : (
               <>
                 <LogIn size={18} />
