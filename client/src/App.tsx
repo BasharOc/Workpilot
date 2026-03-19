@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import LoginPage from "@/pages/LoginPage";
@@ -9,6 +9,7 @@ import ClientDetailPage from "@/pages/ClientDetailPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import TasksPage from "@/pages/TasksPage";
+import AppLayout from "@/layouts/AppLayout";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -46,39 +47,14 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function DashboardPlaceholder() {
-  const { user, logout } = useAuthStore();
-
+function DashboardPage() {
+  const { user } = useAuthStore();
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-4xl font-bold text-primary">FreelanceFlow</h1>
+    <div className="flex h-full flex-col items-center justify-center gap-2 py-20">
+      <h1 className="text-3xl font-bold text-primary">FreelanceFlow</h1>
       <p className="text-muted-foreground">
         Welcome, {user?.first_name} {user?.last_name}!
       </p>
-      <Link
-        to="/clients"
-        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-      >
-        Clients
-      </Link>
-      <Link
-        to="/projects"
-        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-      >
-        Projects
-      </Link>
-      <Link
-        to="/tasks"
-        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-      >
-        Tasks
-      </Link>
-      <button
-        onClick={logout}
-        className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-      >
-        Sign out
-      </button>
     </div>
   );
 }
@@ -149,54 +125,22 @@ export default function App() {
             </GuestRoute>
           }
         />
+
+        {/* Protected layout routes */}
         <Route
-          path="/"
           element={
             <ProtectedRoute>
-              <DashboardPlaceholder />
+              <AppLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/clients"
-          element={
-            <ProtectedRoute>
-              <ClientsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/clients/:id"
-          element={
-            <ProtectedRoute>
-              <ClientDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/projects"
-          element={
-            <ProtectedRoute>
-              <ProjectsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/projects/:id"
-          element={
-            <ProtectedRoute>
-              <ProjectDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tasks"
-          element={
-            <ProtectedRoute>
-              <TasksPage />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/clients/:id" element={<ClientDetailPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
