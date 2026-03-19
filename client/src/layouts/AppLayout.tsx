@@ -63,11 +63,19 @@ function SidebarContent({
               <PanelLeftOpen className="h-4 w-4" />
             </button>
           ) : (
-            <img src="/workpilot_no_bg.png" alt="Workpilot" className="h-7 w-7 shrink-0 object-contain" />
+            <img
+              src="/workpilot_no_bg.png"
+              alt="Workpilot"
+              className="h-7 w-7 shrink-0 object-contain"
+            />
           )
         ) : (
           <>
-            <img src="/workpilot_no_bg.png" alt="Workpilot" className="h-7 w-7 shrink-0 object-contain" />
+            <img
+              src="/workpilot_no_bg.png"
+              alt="Workpilot"
+              className="h-7 w-7 shrink-0 object-contain"
+            />
             <span className="ml-2 flex-1 text-sm font-semibold text-sidebar-foreground">
               Workpilot
             </span>
@@ -147,8 +155,6 @@ function SidebarContent({
             </span>
           )}
         </NavLink>
-
-
       </div>
     </div>
   );

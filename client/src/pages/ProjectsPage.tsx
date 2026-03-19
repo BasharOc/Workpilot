@@ -58,6 +58,7 @@ export default function ProjectsPage() {
   const [clientFilter, setClientFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   // Add modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -94,6 +95,8 @@ export default function ProjectsPage() {
         );
       } catch {
         setError("Failed to load data");
+      } finally {
+        setIsLoading(false);
       }
     }
     void init();
@@ -199,214 +202,251 @@ export default function ProjectsPage() {
           </button>
         </div>
 
-        <div className="mb-3">
-          <SearchBar
-            ref={searchRef}
-            value={search}
-            onChange={(v) => {
-              setSearch(v);
-              setPage(1);
-            }}
-            placeholder="Search by title or client…"
-          />
-        </div>
-
-        <div className="mb-3 flex items-center justify-end gap-2">
-          {/* Status filter */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className="h-9 appearance-none rounded-lg border border-border bg-card pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="all">All statuses</option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+        {/* No clients state */}
+        {!isLoading && clients.length === 0 && (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
               <svg
-                className="h-4 w-4"
+                className="h-6 w-6"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.5"
+                strokeWidth="1.5"
               >
-                <path d="m6 9 6 6 6-6" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                />
               </svg>
-            </span>
-          </div>
-
-          {/* Client filter */}
-          <div className="relative">
-            <select
-              value={clientFilter}
-              onChange={(e) => {
-                setClientFilter(e.target.value);
-                setPage(1);
-              }}
-              className="h-9 appearance-none rounded-lg border border-border bg-card pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            </div>
+            <p className="text-base font-medium">
+              Noch keine Clients vorhanden
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Lege zuerst einen Client an, bevor du Projekte erstellst.
+            </p>
+            <Link
+              to="/clients"
+              className="mt-4 inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
             >
-              <option value="all">All clients</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </span>
+              Client hinzufügen
+            </Link>
           </div>
-        </div>
+        )}
 
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full table-fixed text-sm">
-              <colgroup>
-                <col className="w-[30%]" />
-                <col className="w-[20%]" />
-                <col className="w-[15%]" />
-                <col className="w-[15%]" />
-                <col className="w-[12%]" />
-                <col className="w-[8%]" />
-              </colgroup>
-              <thead className="bg-muted/50">
-                <tr className="border-b border-border">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Title
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Client
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Deadline
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Budget
-                  </th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      {search.trim() ||
-                      statusFilter !== "all" ||
-                      clientFilter !== "all"
-                        ? "No projects match your filters."
-                        : "No projects yet."}
-                    </td>
-                  </tr>
-                ) : (
-                  paginated.map((p) => (
-                    <tr
-                      key={p.id}
-                      className="cursor-pointer border-b border-border last:border-b-0 hover:bg-muted/30"
-                      onClick={() => navigate(`/projects/${p.id}`)}
-                    >
-                      <td className="px-4 py-3 align-middle font-medium">
-                        {p.title}
-                      </td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground">
-                        <Link
-                          to={`/clients/${p.client?.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="transition hover:text-foreground hover:underline"
-                        >
-                          {p.client?.name ?? "—"}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 align-middle">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusClass(p.status)}`}
-                        >
-                          {getStatusLabel(p.status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 align-middle">
-                        {p.deadline
-                          ? (() => {
-                              const overdue =
-                                p.status !== "completed" &&
-                                p.status !== "cancelled" &&
-                                new Date(p.deadline) < new Date();
-                              return (
-                                <span
-                                  className={
-                                    overdue
-                                      ? "font-medium text-red-600"
-                                      : "text-muted-foreground"
-                                  }
-                                >
-                                  {new Date(p.deadline).toLocaleDateString(
-                                    "de-DE",
-                                    {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                    },
-                                  )}
-                                  {overdue && (
-                                    <span className="ml-1.5 inline-flex items-center rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-500">
-                                      !
-                                    </span>
-                                  )}
-                                </span>
-                              );
-                            })()
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 align-middle text-muted-foreground">
-                        {p.budget != null
-                          ? `€ ${parseFloat(p.budget).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right align-middle">
-                        <svg
-                          className="ml-auto h-4 w-4 text-muted-foreground"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="m9 18 6-6-6-6" />
-                        </svg>
-                      </td>
+        {!isLoading && clients.length > 0 && (
+          <>
+            <div className="mb-3">
+              <SearchBar
+                ref={searchRef}
+                value={search}
+                onChange={(v) => {
+                  setSearch(v);
+                  setPage(1);
+                }}
+                placeholder="Search by title or client…"
+              />
+            </div>
+
+            <div className="mb-3 flex items-center justify-end gap-2">
+              {/* Status filter */}
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-9 appearance-none rounded-lg border border-border bg-card pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">All statuses</option>
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </span>
+              </div>
+
+              {/* Client filter */}
+              <div className="relative">
+                <select
+                  value={clientFilter}
+                  onChange={(e) => {
+                    setClientFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-9 appearance-none rounded-lg border border-border bg-card pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">All clients</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-full table-fixed text-sm">
+                  <colgroup>
+                    <col className="w-[30%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[8%]" />
+                  </colgroup>
+                  <thead className="bg-muted/50">
+                    <tr className="border-b border-border">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Title
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Client
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Deadline
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Budget
+                      </th>
+                      <th className="px-4 py-3" />
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            page={page}
-            totalPages={Math.ceil(filtered.length / PAGE_SIZE)}
-            total={filtered.length}
-            itemLabel="Projects"
-            onPageChange={setPage}
-          />
-        </div>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-4 py-8 text-center text-muted-foreground"
+                        >
+                          {search.trim() ||
+                          statusFilter !== "all" ||
+                          clientFilter !== "all"
+                            ? "No projects match your filters."
+                            : "No projects yet."}
+                        </td>
+                      </tr>
+                    ) : (
+                      paginated.map((p) => (
+                        <tr
+                          key={p.id}
+                          className="cursor-pointer border-b border-border last:border-b-0 hover:bg-muted/30"
+                          onClick={() => navigate(`/projects/${p.id}`)}
+                        >
+                          <td className="px-4 py-3 align-middle font-medium">
+                            {p.title}
+                          </td>
+                          <td className="px-4 py-3 align-middle text-muted-foreground">
+                            <Link
+                              to={`/clients/${p.client?.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="transition hover:text-foreground hover:underline"
+                            >
+                              {p.client?.name ?? "—"}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 align-middle">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusClass(p.status)}`}
+                            >
+                              {getStatusLabel(p.status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 align-middle">
+                            {p.deadline
+                              ? (() => {
+                                  const overdue =
+                                    p.status !== "completed" &&
+                                    p.status !== "cancelled" &&
+                                    new Date(p.deadline) < new Date();
+                                  return (
+                                    <span
+                                      className={
+                                        overdue
+                                          ? "font-medium text-red-600"
+                                          : "text-muted-foreground"
+                                      }
+                                    >
+                                      {new Date(p.deadline).toLocaleDateString(
+                                        "de-DE",
+                                        {
+                                          day: "2-digit",
+                                          month: "short",
+                                          year: "numeric",
+                                        },
+                                      )}
+                                      {overdue && (
+                                        <span className="ml-1.5 inline-flex items-center rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-500">
+                                          !
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })()
+                              : "—"}
+                          </td>
+                          <td className="px-4 py-3 align-middle text-muted-foreground">
+                            {p.budget != null
+                              ? `€ ${parseFloat(p.budget).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`
+                              : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-right align-middle">
+                            <svg
+                              className="ml-auto h-4 w-4 text-muted-foreground"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="m9 18 6-6-6-6" />
+                            </svg>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                page={page}
+                totalPages={Math.ceil(filtered.length / PAGE_SIZE)}
+                total={filtered.length}
+                itemLabel="Projects"
+                onPageChange={setPage}
+              />
+            </div>
+          </>
+        )}
 
         {/* Add Project Modal */}
         {isAddOpen && (
