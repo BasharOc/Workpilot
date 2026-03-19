@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "@/api/axios";
 
 interface Client {
@@ -64,6 +64,7 @@ function getStatusClass(status: string) {
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,9 +164,13 @@ export default function ClientDetailPage() {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Client not found.</p>
-        <Link to="/clients" className="text-sm text-primary underline">
-          Back to clients
-        </Link>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="text-sm text-primary underline"
+        >
+          Go back
+        </button>
       </div>
     );
   }
@@ -174,8 +179,9 @@ export default function ClientDetailPage() {
     <div className="w-full px-4 py-6 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-3xl">
         <div className="mb-6">
-          <Link
-            to="/clients"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
           >
             <svg
@@ -187,8 +193,8 @@ export default function ClientDetailPage() {
             >
               <path d="m15 18-6-6 6-6" />
             </svg>
-            Back to Clients
-          </Link>
+            Back
+          </button>
         </div>
 
         <div className="mb-6 flex items-start justify-between gap-4">

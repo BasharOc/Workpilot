@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { LayoutGrid, List, Plus } from "lucide-react";
 import api from "@/api/axios";
 import type { Task } from "@/types/task";
@@ -63,6 +63,7 @@ function ProgressBar({ percent }: { percent: number }) {
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -190,9 +191,13 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Project not found.</p>
-        <Link to="/projects" className="text-sm text-primary underline">
-          Back to projects
-        </Link>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="text-sm text-primary underline"
+        >
+          Go back
+        </button>
       </div>
     );
   }
@@ -203,9 +208,22 @@ export default function ProjectDetailPage() {
         <div className="mx-auto max-w-6xl">
           {/* Breadcrumb */}
           <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/projects" className="transition hover:text-foreground">
-              Projects
-            </Link>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1 transition hover:text-foreground"
+            >
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              Back
+            </button>
             <span>/</span>
             <Link
               to={`/clients/${project.client.id}`}
