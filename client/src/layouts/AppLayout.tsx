@@ -50,18 +50,37 @@ function SidebarContent({
       {/* Logo */}
       <div
         className={`flex h-14 items-center border-b border-sidebar-border ${
-          collapsed ? "justify-center px-0" : "gap-2.5 px-4"
+          collapsed ? "justify-center px-2" : "px-3"
         }`}
       >
-        <img
-          src="/workpilot_no_bg.png"
-          alt="Workpilot"
-          className="h-7 w-7 shrink-0 object-contain"
-        />
-        {!collapsed && (
-          <span className="text-sm font-semibold text-sidebar-foreground">
-            Workpilot
-          </span>
+        {collapsed ? (
+          onToggleCollapse ? (
+            <button
+              onClick={onToggleCollapse}
+              title="Expand sidebar"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          ) : (
+            <img src="/workpilot_no_bg.png" alt="Workpilot" className="h-7 w-7 shrink-0 object-contain" />
+          )
+        ) : (
+          <>
+            <img src="/workpilot_no_bg.png" alt="Workpilot" className="h-7 w-7 shrink-0 object-contain" />
+            <span className="ml-2 flex-1 text-sm font-semibold text-sidebar-foreground">
+              Workpilot
+            </span>
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                title="Collapse sidebar"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -129,24 +148,7 @@ function SidebarContent({
           )}
         </NavLink>
 
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`flex w-full items-center rounded-md py-2 text-sm text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground ${
-              collapsed ? "justify-center px-2" : "gap-3 px-3"
-            }`}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="h-4 w-4 shrink-0" />
-            ) : (
-              <>
-                <PanelLeftClose className="h-4 w-4 shrink-0" />
-                <span>Collapse</span>
-              </>
-            )}
-          </button>
-        )}
+
       </div>
     </div>
   );

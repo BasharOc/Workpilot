@@ -345,8 +345,8 @@ export default function DashboardPage() {
 
       {/* Overdue warning */}
       {hasOverdue && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5 dark:border-red-900/40 dark:bg-red-950/20">
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-red-700 dark:text-red-400">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
               !
             </span>
@@ -360,17 +360,17 @@ export default function DashboardPage() {
               <div
                 key={inv.id}
                 onClick={() => navigate(`/invoices/${inv.id}`)}
-                className="flex cursor-pointer items-center justify-between rounded-lg border border-red-200 bg-white px-4 py-2.5 transition hover:bg-red-50"
+                className="flex cursor-pointer items-center justify-between rounded-lg border border-red-200 bg-card px-4 py-2.5 transition hover:bg-red-50 dark:border-red-900/40 dark:hover:bg-red-950/30"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-red-800">
+                  <p className="text-sm font-medium text-red-800 dark:text-red-400">
                     {inv.invoiceNumber}
                   </p>
-                  <p className="text-xs text-red-500">
+                  <p className="text-xs text-red-500 dark:text-red-500">
                     {inv.client.name} · fällig {formatDate(inv.dueDate!)}
                   </p>
                 </div>
-                <span className="ml-3 shrink-0 text-sm font-semibold text-red-700">
+                <span className="ml-3 shrink-0 text-sm font-semibold text-red-700 dark:text-red-400">
                   {formatMoney(computeTotal(inv.items), inv.currency)}
                 </span>
               </div>
@@ -379,17 +379,17 @@ export default function DashboardPage() {
               <div
                 key={proj.id}
                 onClick={() => navigate(`/projects/${proj.id}`)}
-                className="flex cursor-pointer items-center justify-between rounded-lg border border-red-200 bg-white px-4 py-2.5 transition hover:bg-red-50"
+                className="flex cursor-pointer items-center justify-between rounded-lg border border-red-200 bg-card px-4 py-2.5 transition hover:bg-red-50 dark:border-red-900/40 dark:hover:bg-red-950/30"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-red-800">
+                  <p className="text-sm font-medium text-red-800 dark:text-red-400">
                     {proj.title}
                   </p>
-                  <p className="text-xs text-red-500">
+                  <p className="text-xs text-red-500 dark:text-red-500">
                     {proj.client.name} · Deadline {formatDate(proj.deadline!)}
                   </p>
                 </div>
-                <span className="ml-3 shrink-0 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                <span className="ml-3 shrink-0 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400">
                   Projekt
                 </span>
               </div>
