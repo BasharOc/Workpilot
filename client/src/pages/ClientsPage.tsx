@@ -309,11 +309,28 @@ export default function ClientsPage() {
   return (
     <div className="w-full px-4 py-6 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-5">
-          <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage contacts in a clean, table-first workspace.
-          </p>
+        <div className="mb-5 flex items-end justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage contacts in a clean, table-first workspace.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setIsAddModalOpen(true);
+            }}
+            title={`Add Client (${formatAltShortcut("N")})`}
+            className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+          >
+            <span className="text-base leading-none">+</span>
+            Add Client
+            <kbd className="rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-xs">
+              {formatAltShortcut("N")}
+            </kbd>
+          </button>
         </div>
 
         <div className="mb-3">
@@ -365,52 +382,33 @@ export default function ClientsPage() {
               </div>
             </>
           ) : (
-            <>
-              <div className="ml-auto flex items-center gap-2">
-                <div className="relative">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => {
-                      setStatusFilter(e.target.value);
-                      setActivePage(1);
-                    }}
-                    className="h-9 appearance-none rounded-lg border border-border bg-card pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="all">All statuses</option>
-                    <option value="lead">Lead</option>
-                    <option value="active">Active</option>
-                    <option value="paused">Paused</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    <svg
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError("");
-                    setIsAddModalOpen(true);
-                  }}
-                  title={`Add Client (${formatAltShortcut("N")})`}
-                  className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setActivePage(1);
+                }}
+                className="h-9 appearance-none rounded-lg border border-border bg-card pl-3 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="all">All statuses</option>
+                <option value="lead">Lead</option>
+                <option value="active">Active</option>
+                <option value="paused">Paused</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
                 >
-                  <span className="text-base leading-none">+</span>
-                  Add Client
-                  <kbd className="rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 font-mono text-xs">
-                    {formatAltShortcut("N")}
-                  </kbd>
-                </button>
-              </div>
-            </>
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </span>
+            </div>
           )}
         </div>
 

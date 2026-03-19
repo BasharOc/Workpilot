@@ -211,7 +211,7 @@ export default function ProjectsPage() {
           />
         </div>
 
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex items-center justify-end gap-2">
           {/* Status filter */}
           <div className="relative">
             <select
