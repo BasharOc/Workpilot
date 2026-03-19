@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import { useTheme } from "@/hooks/useTheme";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import OnboardingWizard from "@/components/OnboardingWizard";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -163,9 +164,11 @@ function SidebarContent({
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useLocalStorage("sidebar_collapsed", false);
+  const { isNewUser, clearNewUser } = useAuthStore();
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      {isNewUser && <OnboardingWizard onClose={clearNewUser} />}
       {/* Desktop sidebar */}
       <aside
         className={`hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200 md:flex ${

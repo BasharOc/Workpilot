@@ -7,6 +7,7 @@ import {
 } from "../services/auth.service.js";
 import type { AuthRequest } from "../middleware/auth.middleware.js";
 import { z } from "zod/v4";
+import prisma from "../db/prisma.js";
 
 const registerSchema = z.object({
   email: z.email("Invalid email"),
@@ -110,7 +111,10 @@ export async function logout(_req: Request, res: Response): Promise<void> {
   res.json({ message: "Logged out" });
 }
 
-export async function getProfile(req: AuthRequest, res: Response): Promise<void> {
+export async function getProfile(
+  req: AuthRequest,
+  res: Response,
+): Promise<void> {
   try {
     const user = await getUserById(req.userId!);
 
@@ -122,5 +126,114 @@ export async function getProfile(req: AuthRequest, res: Response): Promise<void>
     res.json({ user });
   } catch {
     res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function seedDemoData(
+  req: AuthRequest,
+  res: Response,
+): Promise<void> {
+  const userId = req.userId!;
+  try {
+    const existing = await prisma.client.count({ where: { userId } });
+    if (existing > 0) {
+      res.status(400).json({ error: "Demo-Daten existieren bereits" });
+      return;
+    }
+
+    const client = await prisma.client.create({
+      data: {
+        userId,
+        name: "Mustermann GmbH",
+        email: "kontakt@mustermann.de",
+        phone: "+49 30 12345678",
+        company: "Mustermann GmbH",
+        address: "Musterstraße 1, 10115 Berlin",
+        notes: "Stammkunde. Bevorzugt Kommunikation per E-Mail.",
+        status: "active",
+      },
+    });
+
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + 28);
+
+    const project = await prisma.project.create({
+      data: {
+        clientId: client.id,
+        title: "Website Redesign",
+        description:
+          "Komplettes Redesign der Unternehmenswebsite mit modernem Look & Feel und verbesserter Performance.",
+        status: "in_progress",
+        deadline,
+        budget: 4500,
+      },
+    });
+
+    await prisma.task.createMany({
+      data: [
+        {
+          projectId: project.id,
+          title: "Design-Konzept & Wireframes erstellen",
+          status: "done",
+          priority: "high",
+          position: 0,
+        },
+        {
+          projectId: project.id,
+          title: "Homepage Layout umsetzen",
+          status: "in_progress",
+          priority: "high",
+          position: 1,
+        },
+        {
+          projectId: project.id,
+          title: "Responsive Design testen",
+          status: "todo",
+          priority: "medium",
+          position: 2,
+        },
+        {
+          projectId: project.id,
+          title: "SEO-Optimierung durchführen",
+          status: "todo",
+          priority: "low",
+          position: 3,
+        },
+      ],
+    });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 14);
+
+    const year = new Date().getFullYear();
+    await prisma.invoice.create({
+      data: {
+        userId,
+        clientId: client.id,
+        invoiceNumber: `INV-${year}-001`,
+        status: "sent",
+        issueDate: new Date(),
+        dueDate,
+        currency: "EUR",
+        notes: "Anzahlung 50% für Website Redesign Projekt",
+        items: [
+          {
+            description: "Designkonzept & Wireframes",
+            quantity: 1,
+            unitPrice: 800,
+          },
+          {
+            description: "Frontend-Entwicklung (Anzahlung)",
+            quantity: 1,
+            unitPrice: 1350,
+          },
+        ],
+      },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Seed demo error:", err);
+    res.status(500).json({ error: "Fehler beim Erstellen der Demo-Daten" });
   }
 }
