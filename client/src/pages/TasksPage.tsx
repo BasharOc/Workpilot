@@ -6,6 +6,8 @@ import type { Task } from "@/types/task";
 import KanbanBoard from "@/components/tasks/KanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import TaskModal from "@/components/tasks/TaskModal";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { formatAltShortcut } from "@/utils/shortcuts";
 
 interface ProjectOption {
   id: string;
@@ -35,6 +37,19 @@ export default function TasksPage() {
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
 
   const [searchParams] = useSearchParams();
+
+  // Alt+N → open add-task modal
+  useGlobalShortcuts([
+    {
+      code: "KeyN",
+      altKey: true,
+      enabled: !modalOpen && !!selectedProjectId,
+      handler: () => {
+        setEditingTask(null);
+        setModalOpen(true);
+      },
+    },
+  ]);
 
   // Load all projects for the selector
   useEffect(() => {
@@ -197,6 +212,9 @@ export default function TasksPage() {
               >
                 <Plus className="h-4 w-4" />
                 Add task
+                <kbd className="hidden rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 text-xs font-mono sm:inline">
+                  {formatAltShortcut("N")}
+                </kbd>
               </button>
             </div>
           </div>

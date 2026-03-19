@@ -5,7 +5,7 @@ import type { AuthRequest } from "../middleware/auth.middleware.js";
 
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
   status: z.enum(["todo", "in_progress", "in_review", "done"]).optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
   dueDate: z.string().datetime({ offset: true }).optional().nullable(),

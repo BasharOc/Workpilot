@@ -5,6 +5,7 @@ import { z } from "zod";
 import { X } from "lucide-react";
 import api from "@/api/axios";
 import type { Task } from "@/types/task";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required").max(200),
@@ -36,6 +37,7 @@ export default function TaskModal({
     register,
     handleSubmit,
     reset,
+    setFocus,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -73,12 +75,17 @@ export default function TaskModal({
         estimatedHours: "",
       });
     }
-  }, [task, reset]);
+    // Focus the title field after reset
+    setTimeout(() => setFocus("title"), 0);
+  }, [task, reset, setFocus]);
+
+  // Escape → close
+  useGlobalShortcuts([{ key: "Escape", altKey: false, handler: onClose }]);
 
   async function onSubmit(values: FormValues) {
     const payload = {
       title: values.title.trim(),
-      description: values.description?.trim() || null,
+      description: values.description?.trim() || undefined,
       status: values.status,
       priority: values.priority,
       dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : null,

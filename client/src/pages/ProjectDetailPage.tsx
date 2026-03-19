@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { LayoutGrid, List, Plus } from "lucide-react";
 import api from "@/api/axios";
 import type { Task } from "@/types/task";
 import KanbanBoard from "@/components/tasks/KanbanBoard";
 import TaskListView from "@/components/tasks/TaskListView";
 import TaskModal from "@/components/tasks/TaskModal";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { formatAltShortcut } from "@/utils/shortcuts";
 
 interface Project {
   id: string;
@@ -63,7 +65,6 @@ function ProgressBar({ percent }: { percent: number }) {
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -152,6 +153,19 @@ export default function ProjectDetailPage() {
     setModalOpen(true);
   }
 
+  // Alt+N → open add-task modal
+  useGlobalShortcuts([
+    {
+      code: "KeyN",
+      altKey: true,
+      enabled: !modalOpen,
+      handler: () => {
+        setEditingTask(null);
+        setModalOpen(true);
+      },
+    },
+  ]);
+
   function openEditTask(task: Task) {
     setEditingTask(task);
     setModalOpen(true);
@@ -191,13 +205,9 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Project not found.</p>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="text-sm text-primary underline"
-        >
-          Go back
-        </button>
+        <Link to="/projects" className="text-sm text-primary underline">
+          Go to Projects
+        </Link>
       </div>
     );
   }
@@ -206,35 +216,6 @@ export default function ProjectDetailPage() {
     <>
       <div className="w-full px-4 py-6 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-6xl">
-          {/* Breadcrumb */}
-          <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="inline-flex items-center gap-1 transition hover:text-foreground"
-            >
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-              Back
-            </button>
-            <span>/</span>
-            <Link
-              to={`/clients/${project.client.id}`}
-              className="transition hover:text-foreground"
-            >
-              {project.client.name}
-            </Link>
-            <span>/</span>
-            <span className="text-foreground">{project.title}</span>
-          </div>
-
           {/* Header */}
           <div className="mb-6 flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -581,6 +562,9 @@ export default function ProjectDetailPage() {
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add task
+                  <kbd className="hidden rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1 py-0.5 font-mono text-xs sm:inline">
+                    {formatAltShortcut("N")}
+                  </kbd>
                 </button>
               </div>
             </div>

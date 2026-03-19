@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import api from "@/api/axios";
 import { usePortalMenu } from "@/hooks/usePortalMenu";
 import { useInlineEdit } from "@/hooks/useInlineEdit";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { formatAltShortcut } from "@/utils/shortcuts";
 import { EditableCell } from "@/components/EditableCell";
 import { SearchBar } from "@/components/SearchBar";
 import { Pagination } from "@/components/Pagination";
@@ -43,12 +45,6 @@ const PAGE_SIZE = 7;
 
 export default function ClientsPage() {
   const navigate = useNavigate();
-  const isMac =
-    typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
-  const shortcutLabel = isMac ? "⌥N" : "Alt+N";
-  const archiveShortcut = isMac ? "⌥A" : "Alt+A";
-  const deleteShortcut = isMac ? "⌥D" : "Alt+D";
-  const searchShortcut = isMac ? "⌥F" : "Alt+F";
   const searchRef = useRef<HTMLInputElement>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -103,40 +99,29 @@ export default function ClientsPage() {
     fetchClients();
   }, []);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.altKey && e.code === "KeyN") {
-        e.preventDefault();
+  useGlobalShortcuts([
+    {
+      code: "KeyN",
+      altKey: true,
+      enabled: !isAddModalOpen,
+      handler: () => {
         setError("");
         setIsAddModalOpen(true);
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isMac]);
-
-  useEffect(() => {
-    function onSearchKey(e: KeyboardEvent) {
-      if (e.altKey && e.code === "KeyF") {
-        e.preventDefault();
+      },
+    },
+    {
+      code: "KeyF",
+      altKey: true,
+      handler: () => {
         searchRef.current?.focus();
         searchRef.current?.select();
-      }
-    }
-    window.addEventListener("keydown", onSearchKey);
-    return () => window.removeEventListener("keydown", onSearchKey);
-  }, []);
-
-  useEffect(() => {
-    function onSelectionKeyDown(e: KeyboardEvent) {
-      if (isAddModalOpen) return;
-      if (e.key === "Escape" && selectedIds.size > 0) {
-        setSelectedIds(new Set());
-        return;
-      }
-      if (!e.altKey || selectedIds.size === 0) return;
-      if (e.code === "KeyA") {
-        e.preventDefault();
+      },
+    },
+    {
+      code: "KeyA",
+      altKey: true,
+      enabled: selectedIds.size > 0 && !isAddModalOpen,
+      handler: () => {
         void Promise.all(
           [...selectedIds].map((id) =>
             api.put(`/clients/${id}`, { status: "archived" }),
@@ -145,20 +130,27 @@ export default function ClientsPage() {
           setSelectedIds(new Set());
           void fetchClients();
         });
-      }
-      if (e.code === "KeyD") {
-        e.preventDefault();
+      },
+    },
+    {
+      code: "KeyD",
+      altKey: true,
+      enabled: selectedIds.size > 0 && !isAddModalOpen,
+      handler: () => {
         void Promise.all(
           [...selectedIds].map((id) => api.delete(`/clients/${id}`)),
         ).then(() => {
           setSelectedIds(new Set());
           void fetchClients();
         });
-      }
-    }
-    window.addEventListener("keydown", onSelectionKeyDown);
-    return () => window.removeEventListener("keydown", onSelectionKeyDown);
-  }, [selectedIds, isAddModalOpen]);
+      },
+    },
+    {
+      key: "Escape",
+      enabled: selectedIds.size > 0 && !isAddModalOpen,
+      handler: () => setSelectedIds(new Set()),
+    },
+  ]);
 
   function closeAddModal() {
     setIsAddModalOpen(false);
@@ -332,7 +324,7 @@ export default function ClientsPage() {
               setSearch(v);
               setActivePage(1);
             }}
-            placeholder={`Search by name, email or company… (${searchShortcut})`}
+            placeholder={`Search by name, email or company… (${formatAltShortcut("F")})`}
           />
         </div>
 
@@ -350,7 +342,7 @@ export default function ClientsPage() {
                 >
                   Archive
                   <span className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-xs text-muted-foreground">
-                    {archiveShortcut}
+                    {formatAltShortcut("A")}
                   </span>
                 </button>
                 <button
@@ -360,7 +352,7 @@ export default function ClientsPage() {
                 >
                   Delete
                   <span className="rounded border border-red-200 bg-red-100 px-1 py-0.5 font-mono text-xs text-red-500">
-                    {deleteShortcut}
+                    {formatAltShortcut("D")}
                   </span>
                 </button>
                 <button
@@ -408,13 +400,13 @@ export default function ClientsPage() {
                     setError("");
                     setIsAddModalOpen(true);
                   }}
-                  title={`Add Client (${shortcutLabel})`}
+                  title={`Add Client (${formatAltShortcut("N")})`}
                   className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-3 text-sm font-medium text-white transition hover:bg-blue-700"
                 >
                   <span className="text-base leading-none">+</span>
                   Add Client
                   <span className="pointer-events-none ml-1 rounded border border-blue-400 bg-blue-500 px-1.5 py-0.5 font-mono text-xs text-blue-100">
-                    {shortcutLabel}
+                    {formatAltShortcut("N")}
                   </span>
                 </button>
               </div>
