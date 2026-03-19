@@ -20,6 +20,7 @@ model User {
 
   clients Client[]
   invoices Invoice[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -117,4 +118,19 @@ model Invoice {
   @@index([userId])
   @@index([clientId])
   @@map("invoices")
+}
+
+model PasswordResetToken {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  hashedToken  String    @map("hashed_token")
+  expiresAt    DateTime  @map("expires_at")
+  usedAt       DateTime? @map("used_at")
+  attempts     Int       @default(0)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }

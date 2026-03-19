@@ -8,6 +8,8 @@ import {
 import type { AuthRequest } from "../middleware/auth.middleware.js";
 import { z } from "zod/v4";
 import prisma from "../db/prisma.js";
+import bcrypt from "bcrypt";
+import { sendPasswordResetOtp } from "../utils/email.js";
 
 const registerSchema = z.object({
   email: z.email("Invalid email"),
@@ -235,5 +237,169 @@ export async function seedDemoData(
   } catch (err) {
     console.error("Seed demo error:", err);
     res.status(500).json({ error: "Fehler beim Erstellen der Demo-Daten" });
+  }
+}
+
+const OTP_TTL_MINUTES = 15;
+const MAX_ATTEMPTS = 3;
+
+export async function forgotPassword(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email || typeof email !== "string") {
+      res.status(400).json({ error: "E-Mail erforderlich" });
+      return;
+    }
+
+    // Always respond 200 to avoid user-enumeration
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+    if (!user) {
+      res.json({
+        message:
+          "Falls ein Konto mit dieser E-Mail existiert, wurde ein Code versendet.",
+      });
+      return;
+    }
+
+    // Invalidate any existing unused tokens for this user
+    await prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    // Generate 6-digit OTP
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const hashedToken = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, hashedToken, expiresAt },
+    });
+
+    await sendPasswordResetOtp(user.email, user.firstName, otp);
+
+    res.json({
+      message:
+        "Falls ein Konto mit dieser E-Mail existiert, wurde ein Code versendet.",
+    });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ error: "Interner Fehler" });
+  }
+}
+
+export async function resetPassword(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  try {
+    const { email, otp, newPassword } = req.body as {
+      email?: string;
+      otp?: string;
+      newPassword?: string;
+    };
+
+    if (!email || !otp || !newPassword) {
+      res
+        .status(400)
+        .json({ error: "E-Mail, Code und neues Passwort sind erforderlich" });
+      return;
+    }
+    if (newPassword.length < 8) {
+      res
+        .status(400)
+        .json({ error: "Passwort muss mindestens 8 Zeichen haben" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+    if (!user) {
+      res.status(400).json({ error: "Ungültiger Code oder E-Mail" });
+      return;
+    }
+
+    // Get latest unused token
+    const token = await prisma.passwordResetToken.findFirst({
+      where: { userId: user.id, usedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!token) {
+      res
+        .status(400)
+        .json({
+          error: "Kein aktiver Code gefunden. Bitte neuen Code anfordern.",
+        });
+      return;
+    }
+
+    if (token.expiresAt < new Date()) {
+      res
+        .status(400)
+        .json({
+          error: "Der Code ist abgelaufen. Bitte neuen Code anfordern.",
+        });
+      return;
+    }
+
+    if (token.attempts >= MAX_ATTEMPTS) {
+      res
+        .status(400)
+        .json({ error: "Zu viele Fehlversuche. Bitte neuen Code anfordern." });
+      return;
+    }
+
+    const valid = await bcrypt.compare(otp, token.hashedToken);
+    if (!valid) {
+      await prisma.passwordResetToken.update({
+        where: { id: token.id },
+        data: { attempts: { increment: 1 } },
+      });
+      const remaining = MAX_ATTEMPTS - token.attempts - 1;
+      res.status(400).json({
+        error:
+          remaining > 0
+            ? `Ungültiger Code. Noch ${remaining} Versuch${remaining === 1 ? "" : "e"}.`
+            : "Zu viele Fehlversuche. Bitte neuen Code anfordern.",
+      });
+      return;
+    }
+
+    // Valid OTP — update password and mark token as used
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+      prisma.passwordResetToken.update({
+        where: { id: token.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    res.json({ message: "Passwort erfolgreich geändert" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ error: "Interner Fehler" });
+  }
+}
+
+export async function deleteAccount(
+  req: AuthRequest,
+  res: Response,
+): Promise<void> {
+  try {
+    const userId = req.userId!;
+    await prisma.user.delete({ where: { id: userId } });
+    res.clearCookie(REFRESH_TOKEN_COOKIE);
+    res.json({ message: "Account gelöscht" });
+  } catch (err) {
+    console.error("Delete account error:", err);
+    res.status(500).json({ error: "Interner Fehler" });
   }
 }

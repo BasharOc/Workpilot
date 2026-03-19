@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import MaintenancePage from "@/pages/MaintenancePage";
 import ClientsPage from "@/pages/ClientsPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
@@ -117,6 +118,7 @@ export default function App() {
             </GuestRoute>
           }
         />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Protected layout routes */}
         <Route

@@ -56,7 +56,10 @@ export default function LoginPage() {
           )}
 
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="email"
+              className="text-sm font-medium text-foreground"
+            >
               Email
             </label>
             <input
@@ -73,7 +76,10 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-foreground"
+            >
               Password
             </label>
             <div className="relative">
@@ -94,7 +100,9 @@ export default function LoginPage() {
               </button>
             </div>
             {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
@@ -116,8 +124,16 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <Link to="/register" className="font-medium text-primary hover:underline">
+          <Link
+            to="/register"
+            className="font-medium text-primary hover:underline"
+          >
             Sign up
+          </Link>
+        </p>
+        <p className="text-center text-sm text-muted-foreground">
+          <Link to="/forgot-password" className="hover:underline">
+            Passwort vergessen?
           </Link>
         </p>
       </div>

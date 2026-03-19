@@ -6,6 +6,9 @@ import {
   logout,
   getProfile,
   seedDemoData,
+  forgotPassword,
+  resetPassword,
+  deleteAccount,
 } from "../controllers/auth.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -17,5 +20,8 @@ router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.get("/profile", requireAuth, getProfile);
 router.post("/seed-demo", requireAuth, seedDemoData);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
+router.delete("/account", requireAuth, deleteAccount);
 
 export default router;
