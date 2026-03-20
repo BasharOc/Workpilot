@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.*
+*.log
+prisma/migrations/dev-*
+src/generated/prisma/libquery_engine-darwin-*.node
+src/generated/prisma/libquery_engine-windows-*.dll.node

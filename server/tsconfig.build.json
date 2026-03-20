@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // noEmit überschreiben, damit tsc Dateien in dist/ ausgibt
+    "noEmit": false
+  }
+}
