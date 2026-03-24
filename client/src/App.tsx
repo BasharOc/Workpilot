@@ -86,9 +86,9 @@ export default function App() {
       }
     }
 
-    // Sofort prüfen und dann alle 2 Sekunden erneut.
+    // Sofort prüfen und dann alle 30 Sekunden erneut.
     ping();
-    const interval = window.setInterval(ping, 2000);
+    const interval = window.setInterval(ping, 30000);
 
     return () => {
       isMounted = false;

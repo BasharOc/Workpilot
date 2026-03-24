@@ -6,12 +6,17 @@
 # ==============================================================
 #
 # Benötigte Umgebungsvariablen (.env Datei im Projekt-Root):
-#   POSTGRES_PASSWORD  – Datenbankpasswort
-#   JWT_SECRET         – Geheimer Schlüssel für JWT-Token
-#   CLIENT_URL         – Öffentliche URL des Frontends (z.B. https://example.com)
-#   RESEND_API_KEY     – API Key für E-Mail-Versand (Resend)
-#   GOOGLE_CLIENT_ID   – Google OAuth Client ID (optional)
-#   GOOGLE_CLIENT_SECRET – Google OAuth Client Secret (optional)
+#   POSTGRES_PASSWORD        – Datenbankpasswort
+#   JWT_ACCESS_SECRET        – Geheimer Schlüssel für Access-Token
+#   JWT_REFRESH_SECRET       – Geheimer Schlüssel für Refresh-Token
+#   CLIENT_URL               – Öffentliche URL des Frontends (z.B. https://workpilot.basharfarhat.com)
+#   SERVER_URL               – Öffentliche URL des Backends  (z.B. https://workpilot.basharfarhat.com)
+#   RESEND_API_KEY           – API Key für E-Mail-Versand (Resend)
+#   GOOGLE_CLIENT_ID         – Google OAuth Client ID (optional)
+#   GOOGLE_CLIENT_SECRET     – Google OAuth Client Secret (optional)
+#   GOOGLE_REDIRECT_URI      – Google OAuth Callback URL (optional)
+#   GOOGLE_FRONTEND_CALLBACK_URL – Frontend-Callback URL nach OAuth (optional)
+#   EMAIL_FROM               – Absenderadresse für E-Mails (optional)
 # ==============================================================
 
 services:
@@ -46,11 +51,18 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/taskmanager
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       CLIENT_URL: ${CLIENT_URL}
+      SERVER_URL: ${SERVER_URL}
       RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      GOOGLE_FRONTEND_CALLBACK_URL: ${GOOGLE_FRONTEND_CALLBACK_URL:-}
     depends_on:
       db:
         condition: service_healthy
@@ -62,12 +74,15 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
-    container_name: taskmanager-client
+    container_name: workpilot-client
     restart: unless-stopped
     depends_on:
       - server
+    # Port 3001 auf dem Host → Port 80 im Container.
+    # Host-Nginx leitet workpilot.basharfarhat.com → localhost:3001 weiter.
+    # Port 80 bleibt für die anderen Apps auf dem Server frei.
     ports:
-      - "80:80"
+      - "3001:80"
 
 # ── Volumes ───────────────────────────────────────────────────
 volumes:

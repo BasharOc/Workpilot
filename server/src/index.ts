@@ -17,6 +17,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
   cors({
@@ -26,6 +27,10 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // Rate limiting:
 // - In production: schützt gegen Brute-Force / Spam
@@ -40,10 +45,6 @@ if (process.env.NODE_ENV === "production") {
 
   app.use("/api", limiter);
 }
-
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/clients", clientsRoutes);

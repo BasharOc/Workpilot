@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../db/prisma.js";
 import type { UserPublic, JwtPayload } from "../types/auth.js";
-import type { User } from "../generated/prisma/client.js";
+import type { User } from "@prisma/client";
 
 const SALT_ROUNDS = 12;
 
