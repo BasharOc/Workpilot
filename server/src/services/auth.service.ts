@@ -31,15 +31,25 @@ function buildAuthResult(user: User) {
 }
 
 function generateAccessToken(userId: string): string {
-  return jwt.sign({ userId } satisfies JwtPayload, process.env.JWT_ACCESS_SECRET!, {
-    expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || "15m") as jwt.SignOptions["expiresIn"],
-  });
+  return jwt.sign(
+    { userId } satisfies JwtPayload,
+    process.env.JWT_ACCESS_SECRET!,
+    {
+      expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN ||
+        "15m") as jwt.SignOptions["expiresIn"],
+    },
+  );
 }
 
 function generateRefreshToken(userId: string): string {
-  return jwt.sign({ userId } satisfies JwtPayload, process.env.JWT_REFRESH_SECRET!, {
-    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || "7d") as jwt.SignOptions["expiresIn"],
-  });
+  return jwt.sign(
+    { userId } satisfies JwtPayload,
+    process.env.JWT_REFRESH_SECRET!,
+    {
+      expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ||
+        "7d") as jwt.SignOptions["expiresIn"],
+    },
+  );
 }
 
 export function verifyAccessToken(token: string): JwtPayload {
@@ -54,7 +64,7 @@ export async function registerUser(
   email: string,
   password: string,
   firstName: string,
-  lastName: string
+  lastName: string,
 ) {
   const existing = await prisma.user.findUnique({ where: { email } });
 

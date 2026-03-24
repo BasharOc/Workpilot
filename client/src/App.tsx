@@ -121,7 +121,10 @@ export default function App() {
             </GuestRoute>
           }
         />
-        <Route path="/auth/google/callback" element={<GoogleAuthCallbackPage />} />
+        <Route
+          path="/auth/google/callback"
+          element={<GoogleAuthCallbackPage />}
+        />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Protected layout routes */}
