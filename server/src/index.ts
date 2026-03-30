@@ -36,14 +36,25 @@ app.get("/api/health", (_req, res) => {
 // - In production: schützt gegen Brute-Force / Spam
 // - In development: deaktiviert, damit du beim Testen nicht dauernd 429 bekommst
 if (process.env.NODE_ENV === "production") {
-  const limiter = rateLimit({
+  // Strenger Limiter für Auth-Routen (Brute-Force-Schutz)
+  const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 100,
+    limit: 20,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { error: "Zu viele Versuche, bitte später erneut versuchen." },
+  });
+
+  // Lockerer Limiter für alle anderen API-Routen
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 500,
     standardHeaders: "draft-8",
     legacyHeaders: false,
   });
 
-  app.use("/api", limiter);
+  app.use("/api/auth", authLimiter);
+  app.use("/api", apiLimiter);
 }
 
 app.use("/api/auth", authRoutes);
